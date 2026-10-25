@@ -1,0 +1,68 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#1f3fdc",
+        "primary-container": "#405cf5",
+        "primary-fixed": "#dee0ff",
+        "primary-fixed-dim": "#bbc3ff",
+        "on-primary": "#ffffff",
+        "on-primary-container": "#f0efff",
+        "on-primary-fixed": "#000f5c",
+        "on-primary-fixed-variant": "#002dcb",
+        "secondary": "#4f5c8e",
+        "secondary-container": "#b7c4fd",
+        "secondary-fixed": "#dce1ff",
+        "secondary-fixed-dim": "#b7c4fd",
+        "on-secondary": "#ffffff",
+        "on-secondary-container": "#435081",
+        "tertiary": "#3047c1",
+        "tertiary-container": "#4b62db",
+        "tertiary-fixed": "#dee0ff",
+        "tertiary-fixed-dim": "#bac3ff",
+        "background": "#f9f9ff",
+        "surface": "#f9f9ff",
+        "surface-dim": "#cedaf3",
+        "surface-bright": "#f9f9ff",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#f0f3ff",
+        "surface-container": "#e7eeff",
+        "surface-container-high": "#dee8ff",
+        "surface-container-highest": "#d7e3fc",
+        "on-surface": "#101c2e",
+        "on-surface-variant": "#444655",
+        "on-background": "#101c2e",
+        "outline": "#757687",
+        "outline-variant": "#c5c5d8",
+        "error": "#ba1a1a",
+        "error-container": "#ffdad6",
+        "on-error": "#ffffff",
+        "on-error-container": "#93000a",
+        "surface-tint": "#2d4be6",
+      },
+      fontFamily: {
+        heading: ["'Plus Jakarta Sans'", "sans-serif"],
+        sans: ["'Inter'", "sans-serif"],
+      },
+      borderRadius: {
+        "DEFAULT": "0.25rem",
+        "lg": "0.5rem",
+        "xl": "0.75rem",
+        "2xl": "1rem",
+        "full": "9999px"
+      },
+      boxShadow: {
+        "subtle": "0 2px 10px rgba(31, 63, 220, 0.05)",
+        "card": "0 4px 16px rgba(31, 63, 220, 0.08)",
+        "elevated": "0 10px 30px rgba(31, 63, 220, 0.12)",
+      }
+    },
+  },
+  plugins: [],
+}
