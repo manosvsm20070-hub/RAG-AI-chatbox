@@ -65,7 +65,7 @@ export const WorkspaceDrawer: React.FC = () => {
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { label: 'AI Assistant', path: '/assistant', icon: Sparkles, badge: 'RAG' },
         { label: 'Chat History', path: '/chat-history', icon: MessageSquare },
-        { label: 'Documents', path: '/documents', icon: FileText },
+        ...(isHR ? [{ label: 'Documents', path: '/documents', icon: FileText, badge: 'HR Only' }] : []),
       ],
     },
     {

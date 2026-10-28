@@ -1,17 +1,21 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Sparkles, FileText, CheckSquare, Menu } from 'lucide-react';
+import { LayoutDashboard, Sparkles, FileText, CheckSquare, Menu, Users } from 'lucide-react';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const BottomNav: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isDrawerOpen, setIsDrawerOpen } = useWorkspace();
+  const { isHR } = useAuth();
 
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Assistant', path: '/assistant', icon: Sparkles },
-    { label: 'Documents', path: '/documents', icon: FileText },
+    ...(isHR
+      ? [{ label: 'Documents', path: '/documents', icon: FileText }]
+      : [{ label: 'Teams', path: '/teams', icon: Users }]),
     { label: 'Tasks', path: '/tasks', icon: CheckSquare },
   ];
 

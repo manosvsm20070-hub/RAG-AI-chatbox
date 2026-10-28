@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, FileText, CheckSquare, Sparkles, ArrowRight } from 'lucide-react';
+import { Search, X, FileText, CheckSquare, Sparkles, ArrowRight, Users } from 'lucide-react';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const SearchModal: React.FC = () => {
   const { isSearchOpen, setIsSearchOpen } = useWorkspace();
+  const { isHR } = useAuth();
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
 
   if (!isSearchOpen) return null;
 
   const quickResults = [
-    { type: 'doc', title: 'Employee_Handbook_2025.pdf', category: 'Leave & Policy', path: '/documents' },
-    { type: 'doc', title: 'Health_Benefits_Guide.pdf', category: 'மருத்துவ காப்பீடு (Insurance)', path: '/documents' },
-    { type: 'task', title: 'Review & approve Q3 HR leave policy updates', category: 'Overdue Task', path: '/tasks' },
+    ...(isHR ? [
+      { type: 'doc', title: 'Employee_Handbook_2025.pdf', category: 'Leave & Policy (HR Only)', path: '/documents' },
+      { type: 'doc', title: 'Health_Benefits_Guide.pdf', category: 'மருத்துவ காப்பீடு (Insurance)', path: '/documents' },
+    ] : []),
+    { type: 'task', title: 'Review & approve Q3 HR leave policy updates', category: 'Compliance Task', path: '/tasks' },
+    { type: 'team', title: 'AI Engineering Squad', category: 'Team Directory', path: '/teams' },
     { type: 'ai', title: 'Ask Nexus AI: Emergency leave approval process', category: 'Instant Query', path: '/assistant' },
   ].filter(item => !query || item.title.toLowerCase().includes(query.toLowerCase()) || item.category.toLowerCase().includes(query.toLowerCase()));
 
@@ -66,6 +71,7 @@ export const SearchModal: React.FC = () => {
                 <div className="w-7 h-7 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                   {item.type === 'doc' && <FileText className="w-4 h-4" />}
                   {item.type === 'task' && <CheckSquare className="w-4 h-4" />}
+                  {item.type === 'team' && <Users className="w-4 h-4" />}
                   {item.type === 'ai' && <Sparkles className="w-4 h-4" />}
                 </div>
                 <div>

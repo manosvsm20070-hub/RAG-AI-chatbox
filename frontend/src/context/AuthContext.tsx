@@ -8,6 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isHR: boolean;
+  canViewDocuments: boolean;
   canManageDocuments: boolean;
   canAllocateTeam: boolean;
   canCreateTasks: boolean;
@@ -100,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         isHR,
+        canViewDocuments: isHR,
         canManageDocuments: isHR,
         canAllocateTeam: isHR,
         canCreateTasks: isHR,

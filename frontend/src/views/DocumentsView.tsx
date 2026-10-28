@@ -60,8 +60,53 @@ export const DocumentsView: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!isHR) return;
     setDocuments(documents.filter((d) => d.id !== id));
   };
+
+  if (!isHR) {
+    return (
+      <div className="space-y-6 max-w-2xl mx-auto py-12 animate-in fade-in duration-200 text-center">
+        <div className="bg-surface-container-lowest border border-error/20 rounded-3xl p-8 shadow-card space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-error-container text-error flex items-center justify-center mx-auto shadow-sm">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-error bg-error-container/50 px-3 py-1 rounded-full">
+              Restricted Repository • HR Only
+            </span>
+            <h1 className="font-heading font-bold text-2xl text-on-surface">
+              Document Access Restricted
+            </h1>
+            <p className="text-xs text-on-surface-variant max-w-md mx-auto leading-relaxed">
+              Company policies, financial statements, and architecture documents are strictly confidential and can only be seen and managed by HR personnel (<span className="font-semibold text-primary">lohankanagaraj@gmail.com</span>). Other users do not have viewing privileges.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-low p-3.5 rounded-2xl border border-surface-container text-xs text-on-surface-variant">
+            <span>Currently logged in as: </span>
+            <span className="font-semibold text-on-surface">{user?.name || 'Guest'}</span>
+            <span className="text-outline"> ({user?.email || 'No email'} • Role: {user?.role})</span>
+          </div>
+
+          <div className="pt-2 flex justify-center gap-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-container transition-colors shadow-sm"
+            >
+              Return to Dashboard
+            </button>
+            <button
+              onClick={() => navigate('/auth/signin')}
+              className="px-5 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors"
+            >
+              Sign In as HR (Lohan K J)
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-200">

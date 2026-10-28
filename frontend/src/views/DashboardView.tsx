@@ -15,7 +15,8 @@ import {
   FolderGit2,
   ListTodo,
   TrendingUp,
-  Search
+  Search,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { dashboardMetricsMock, recentActivityMock } from '../api/mockData';
@@ -64,13 +65,23 @@ export const DashboardView: React.FC = () => {
 
       {/* Primary Action Buttons */}
       <div className="grid grid-cols-3 gap-2.5">
-        <button
-          onClick={() => navigate('/documents')}
-          className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-container text-white py-3 px-3 rounded-2xl text-xs font-semibold shadow-sm shadow-primary/20 transition-all hover:shadow-md"
-        >
-          {isHR ? <Upload className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-          <span className="truncate">{isHR ? '+ Upload Doc' : 'Documents'}</span>
-        </button>
+        {isHR ? (
+          <button
+            onClick={() => navigate('/documents')}
+            className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-container text-white py-3 px-3 rounded-2xl text-xs font-semibold shadow-sm shadow-primary/20 transition-all hover:shadow-md"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="truncate">+ Upload Doc</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate('/teams')}
+            className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-container text-white py-3 px-3 rounded-2xl text-xs font-semibold shadow-sm shadow-primary/20 transition-all hover:shadow-md"
+          >
+            <Users className="w-4 h-4" />
+            <span className="truncate">Team Squads</span>
+          </button>
+        )}
 
         <button
           onClick={() => navigate('/assistant')}
@@ -306,7 +317,7 @@ export const DashboardView: React.FC = () => {
             Recent Activity
           </h2>
           <button 
-            onClick={() => navigate('/documents')}
+            onClick={() => navigate(isHR ? '/documents' : '/tasks')}
             className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
           >
             <span>View All</span>
@@ -315,7 +326,9 @@ export const DashboardView: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          {recentActivityMock.map((item) => (
+          {recentActivityMock
+            .filter((item) => isHR || item.type !== 'document')
+            .map((item) => (
             <div
               key={item.id}
               className="bg-surface-container-lowest border border-surface-container-high rounded-2xl p-3.5 flex items-start gap-3 hover:border-primary/30 transition-colors shadow-subtle"
