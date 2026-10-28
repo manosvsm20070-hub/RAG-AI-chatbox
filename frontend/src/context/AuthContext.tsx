@@ -1,7 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, UserRole } from '../types';
-import { currentUserMock, hrUserMock, HR_CREDENTIALS } from '../api/mockData';
+import { User, ManagedUser, UserRole } from '../types';
+import { currentUserMock, hrUserMock, HR_CREDENTIALS, initialManagedUsersMock } from '../api/mockData';
 import { api } from '../api/client';
+
+export interface NewUserData {
+  id?: string;
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  department: string;
+  title: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -13,7 +23,11 @@ interface AuthContextType {
   canAllocateTeam: boolean;
   canCreateTasks: boolean;
   canAccessHRWorkspace: boolean;
-  login: (email: string, password?: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
+  managedUsers: ManagedUser[];
+  createUser: (userData: NewUserData) => { success: boolean; error?: string; user?: ManagedUser };
+  deleteUser: (userId: string) => { success: boolean; error?: string };
+  resetUserPassword: (userId: string, newPassword: string) => { success: boolean; error?: string };
+  login: (identifier: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateLanguage: (lang: User['preferredLanguage']) => void;
 }
@@ -32,6 +46,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     return null;
   });
+
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => {
+    const saved = localStorage.getItem('nexus_managed_users');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        // fallback
+      }
+    }
+    return initialManagedUsersMock;
+  });
+
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -46,27 +76,125 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const saveManagedUsers = (users: ManagedUser[]) => {
+    setManagedUsers(users);
+    try {
+      localStorage.setItem('nexus_managed_users', JSON.stringify(users));
+    } catch (e) {
+      console.error('Failed to persist managed users', e);
+    }
+  };
+
+  const isHR =
+    !!user &&
+    (user.role === 'hr' || user.email.toLowerCase() === HR_CREDENTIALS.email.toLowerCase());
+
+  const createUser = (userData: NewUserData): { success: boolean; error?: string; user?: ManagedUser } => {
+    if (!isHR) {
+      return { success: false, error: 'Access Denied: Only HR can create user accounts.' };
+    }
+
+    const cleanEmail = userData.email.trim().toLowerCase();
+    const cleanId = (userData.id && userData.id.trim()) 
+      ? userData.id.trim().toUpperCase() 
+      : `USR-${Math.floor(100 + Math.random() * 900)}`;
+
+    // Check if ID or email collides with HR or existing users
+    if (
+      cleanEmail === HR_CREDENTIALS.email.toLowerCase() ||
+      cleanId === HR_CREDENTIALS.id.toUpperCase()
+    ) {
+      return { success: false, error: 'User ID or Email is reserved for HR Master account.' };
+    }
+
+    const exists = managedUsers.some(
+      (u) => u.email.toLowerCase() === cleanEmail || u.id.toUpperCase() === cleanId
+    );
+
+    if (exists) {
+      return { success: false, error: 'A user with this User ID or Email already exists.' };
+    }
+
+    const defaultAvatars = [
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80'
+    ];
+
+    const randomAvatar = defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)];
+
+    const newUser: ManagedUser = {
+      id: cleanId,
+      name: userData.name.trim(),
+      email: cleanEmail,
+      password: userData.password.trim(),
+      role: userData.role || 'member',
+      avatar: randomAvatar,
+      department: userData.department.trim() || 'General Engineering',
+      title: userData.title.trim() || 'Team Member',
+      preferredLanguage: 'auto',
+      createdAt: new Date().toISOString().split('T')[0],
+      createdBy: `${user?.name || 'HR'} (${user?.email || HR_CREDENTIALS.email})`
+    };
+
+    const updated = [newUser, ...managedUsers];
+    saveManagedUsers(updated);
+    return { success: true, user: newUser };
+  };
+
+  const deleteUser = (userId: string): { success: boolean; error?: string } => {
+    if (!isHR) {
+      return { success: false, error: 'Access Denied: Only HR can remove user accounts.' };
+    }
+    const updated = managedUsers.filter((u) => u.id !== userId);
+    saveManagedUsers(updated);
+    return { success: true };
+  };
+
+  const resetUserPassword = (userId: string, newPassword: string): { success: boolean; error?: string } => {
+    if (!isHR) {
+      return { success: false, error: 'Access Denied: Only HR can reset user passwords.' };
+    }
+    const updated = managedUsers.map((u) => {
+      if (u.id === userId) {
+        return { ...u, password: newPassword.trim() };
+      }
+      return u;
+    });
+    saveManagedUsers(updated);
+    return { success: true };
+  };
+
   const login = async (
-    email: string,
-    password?: string,
-    role: UserRole = 'lead'
+    identifier: string,
+    password?: string
   ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
-      const normalizedEmail = email.trim().toLowerCase();
+      const cleanIdentifier = identifier.trim().toLowerCase();
+      const cleanPassword = (password || '').trim();
 
-      // Check if trying to sign in as HR Lohan K J
-      if (normalizedEmail === HR_CREDENTIALS.email.toLowerCase()) {
-        const inputClean = (password || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      // 1. Check HR Login (by email or user ID)
+      const isHREmail = cleanIdentifier === HR_CREDENTIALS.email.toLowerCase();
+      const isHRId = 
+        cleanIdentifier === HR_CREDENTIALS.id.toLowerCase() ||
+        cleanIdentifier === 'hr' ||
+        cleanIdentifier === 'lohan' ||
+        cleanIdentifier === 'hr-001';
+
+      if (isHREmail || isHRId) {
+        const inputClean = cleanPassword.toLowerCase().replace(/\s+/g, ' ');
         const targetClean = HR_CREDENTIALS.password.toLowerCase().replace(/\s+/g, ' ');
-        const inputNoSpace = (password || '').replace(/\s+/g, '').toLowerCase();
+        const inputNoSpace = cleanPassword.replace(/\s+/g, '').toLowerCase();
         const targetNoSpace = HR_CREDENTIALS.password.replace(/\s+/g, '').toLowerCase();
 
         const isPasswordValid = 
           !password || 
           inputClean === targetClean || 
           inputNoSpace === targetNoSpace ||
-          password.trim() === 'Lohan K J';
+          cleanPassword === 'Lohan K J';
 
         if (!isPasswordValid) {
           return {
@@ -76,19 +204,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setUser(hrUserMock);
         localStorage.setItem('nexus_user', JSON.stringify(hrUserMock));
+        api.setToken('mock-jwt-hr-session-active');
         return { success: true };
       }
 
-      // Standard user flow
-      const res = await api.login(email);
-      const updatedUser: User = {
-        ...res.user,
-        email,
-        role: role === 'hr' ? 'hr' : role,
+      // 2. Check Managed Users (created by HR) by User ID or Email
+      const matchedUser = managedUsers.find(
+        (u) =>
+          u.email.toLowerCase() === cleanIdentifier ||
+          u.id.toLowerCase() === cleanIdentifier
+      );
+
+      if (matchedUser) {
+        // Verify password
+        const isPasswordValid = matchedUser.password === cleanPassword;
+        if (!isPasswordValid) {
+          return {
+            success: false,
+            error: 'Invalid password. Please check your credentials.',
+          };
+        }
+
+        const safeUser: User = {
+          id: matchedUser.id,
+          name: matchedUser.name,
+          email: matchedUser.email,
+          role: matchedUser.role,
+          avatar: matchedUser.avatar,
+          department: matchedUser.department,
+          title: matchedUser.title,
+          preferredLanguage: matchedUser.preferredLanguage,
+        };
+
+        setUser(safeUser);
+        localStorage.setItem('nexus_user', JSON.stringify(safeUser));
+        api.setToken(`mock-jwt-${matchedUser.id}-session-active`);
+        return { success: true };
+      }
+
+      // 3. User does not exist
+      return {
+        success: false,
+        error: 'No account found with this User ID or Email. Only HR can create user accounts.',
       };
-      setUser(updatedUser);
-      localStorage.setItem('nexus_user', JSON.stringify(updatedUser));
-      return { success: true };
     } finally {
       setIsLoading(false);
     }
@@ -107,10 +265,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('nexus_user', JSON.stringify(updated));
   };
 
-  const isHR =
-    !!user &&
-    (user.role === 'hr' || user.email.toLowerCase() === 'lohankanagaraj@gmail.com');
-
   return (
     <AuthContext.Provider
       value={{
@@ -123,6 +277,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         canAllocateTeam: isHR,
         canCreateTasks: isHR,
         canAccessHRWorkspace: isHR,
+        managedUsers,
+        createUser,
+        deleteUser,
+        resetUserPassword,
         login,
         logout,
         updateLanguage,

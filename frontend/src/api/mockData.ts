@@ -1,4 +1,4 @@
-import { User, MetricPulse, ActivityItem, Task, DocumentItem, ChatMessage, Team, Project, EmployeeFeedback } from '../types';
+import { User, ManagedUser, MetricPulse, ActivityItem, Task, DocumentItem, ChatMessage, Team, Project, EmployeeFeedback } from '../types';
 
 export const currentUserMock: User = {
   id: 'usr-alex-101',
@@ -23,10 +23,40 @@ export const hrUserMock: User = {
 };
 
 export const HR_CREDENTIALS = {
+  id: 'usr-lohan-hr',
   email: 'lohankanagaraj@gmail.com',
   password: 'Lohan K J',
   role: 'hr' as const
 };
+
+export const initialManagedUsersMock: ManagedUser[] = [
+  {
+    id: 'USR-101',
+    name: 'Alex Rivera',
+    email: 'alex.rivera@nexuscorp.ai',
+    password: 'password123',
+    role: 'lead',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    department: 'Product & AI Platform',
+    title: 'Lead AI Architect',
+    preferredLanguage: 'auto',
+    createdAt: '2025-01-15',
+    createdBy: 'Lohan K J (HR)'
+  },
+  {
+    id: 'USR-102',
+    name: 'Priya Sharma',
+    email: 'priya.s@nexuscorp.ai',
+    password: 'password123',
+    role: 'member',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    department: 'Engineering',
+    title: 'Full Stack Engineer',
+    preferredLanguage: 'auto',
+    createdAt: '2025-02-01',
+    createdBy: 'Lohan K J (HR)'
+  }
+];
 
 export const dashboardMetricsMock: MetricPulse = {
   totalTeams: 12,

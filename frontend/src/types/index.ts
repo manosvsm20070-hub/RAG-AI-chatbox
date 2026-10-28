@@ -13,6 +13,12 @@ export interface User {
   preferredLanguage: LanguageMode;
 }
 
+export interface ManagedUser extends User {
+  password: string;
+  createdAt: string;
+  createdBy?: string;
+}
+
 export interface MetricPulse {
   totalTeams: number;
   totalTeamsDelta: string;

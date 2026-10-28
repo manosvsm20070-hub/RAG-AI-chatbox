@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Sparkles, Eye, EyeOff, Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, Eye, EyeOff, Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const SignInView: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isLoading } = useAuth();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -17,7 +17,7 @@ export const SignInView: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-    const result = await login(email, password);
+    const result = await login(identifier, password);
     if (result && !result.success) {
       setErrorMessage(result.error || 'Failed to sign in');
       return;
@@ -38,7 +38,7 @@ export const SignInView: React.FC = () => {
             Sign In to Nexus AI
           </h1>
           <p className="text-xs text-on-surface-variant">
-            Enter your company credentials to access your workspace
+            Enter your User ID or Work Email along with your password
           </p>
         </div>
 
@@ -59,16 +59,16 @@ export const SignInView: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-on-surface-variant mb-1">
-              Work Email
+              User ID or Work Email
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@company.com"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="User ID (e.g. USR-101) or Email"
                 className="w-full bg-surface-container-low pl-10 pr-4 py-3 rounded-2xl text-xs text-on-surface border border-surface-container focus:outline-none focus:border-primary"
               />
             </div>
@@ -124,10 +124,10 @@ export const SignInView: React.FC = () => {
         </form>
 
         <div className="text-center text-xs text-on-surface-variant">
-          Don't have a workspace?{' '}
-          <Link to="/auth/signup" className="font-semibold text-primary hover:underline">
-            Register Company
-          </Link>
+          Need an account?{' '}
+          <span className="font-semibold text-primary">
+            Accounts are created exclusively by HR
+          </span>
         </div>
       </div>
     </div>
