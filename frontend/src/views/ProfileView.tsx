@@ -18,58 +18,15 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-// Curated high-resolution professional corporate executive headshots
-const PROFESSIONAL_AVATARS = [
-  {
-    id: 'corp-1',
-    label: 'Corporate Executive 1',
-    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'corp-2',
-    label: 'Corporate Executive 2',
-    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'corp-3',
-    label: 'Senior Specialist 1',
-    url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'corp-4',
-    label: 'Senior Specialist 2',
-    url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'corp-5',
-    label: 'Team Lead 1',
-    url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'corp-6',
-    label: 'Team Lead 2',
-    url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'corp-7',
-    label: 'AI Engineer 1',
-    url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'corp-8',
-    label: 'AI Engineer 2',
-    url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80',
-  },
-];
-
 export const ProfileView: React.FC = () => {
   const { user, updateLanguage, updateAvatar, isHR } = useAuth();
 
+  const defaultAvatar =
+    user?.avatar ||
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80';
+
   // Avatar state
-  const [selectedAvatar, setSelectedAvatar] = useState<string>(
-    user?.avatar || PROFESSIONAL_AVATARS[0].url
-  );
-  const [customUrlInput, setCustomUrlInput] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState<string>(defaultAvatar);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
   // Language state
@@ -102,18 +59,6 @@ export const ProfileView: React.FC = () => {
       }
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleApplyCustomUrl = () => {
-    if (!customUrlInput.trim()) return;
-    try {
-      new URL(customUrlInput.trim());
-      setSelectedAvatar(customUrlInput.trim());
-      setCustomUrlInput('');
-      setPhotoError(null);
-    } catch {
-      setPhotoError('Please enter a valid HTTP/HTTPS image URL.');
-    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -226,10 +171,10 @@ export const ProfileView: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedAvatar(PROFESSIONAL_AVATARS[0].url)}
+                  onClick={() => setSelectedAvatar(defaultAvatar)}
                   className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface-variant text-xs font-semibold rounded-xl transition-colors"
                 >
-                  Reset
+                  Reset Photo
                 </button>
               </div>
 
@@ -241,65 +186,12 @@ export const ProfileView: React.FC = () => {
               )}
             </div>
 
-            {/* Curated Professional Gallery */}
-            <div className="space-y-2.5 pt-2 border-t border-surface-container">
-              <label className="block text-xs font-semibold text-on-surface-variant">
-                Or Choose from Corporate Executive Avatars:
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {PROFESSIONAL_AVATARS.map((avatar) => {
-                  const isSelected = selectedAvatar === avatar.url;
-                  return (
-                    <button
-                      key={avatar.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedAvatar(avatar.url);
-                        setPhotoError(null);
-                      }}
-                      className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all ${
-                        isSelected
-                          ? 'border-primary ring-2 ring-primary/40 scale-105'
-                          : 'border-transparent hover:border-surface-container-high hover:scale-102 opacity-80 hover:opacity-100'
-                      }`}
-                    >
-                      <img
-                        src={avatar.url}
-                        alt={avatar.label}
-                        className="w-full h-full object-cover"
-                      />
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-primary/25 flex items-center justify-center">
-                          <Check className="w-4 h-4 text-white drop-shadow" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Custom Image URL */}
-            <div className="space-y-1.5 pt-2 border-t border-surface-container">
-              <label className="block text-[11px] font-semibold text-on-surface-variant">
-                Or Paste Image URL:
-              </label>
-              <div className="flex gap-1.5">
-                <input
-                  type="url"
-                  value={customUrlInput}
-                  onChange={(e) => setCustomUrlInput(e.target.value)}
-                  placeholder="https://images.example.com/photo.jpg"
-                  className="flex-1 bg-surface-container-low px-3 py-1.5 rounded-xl text-xs text-on-surface border border-surface-container focus:outline-none focus:border-primary font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyCustomUrl}
-                  className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high text-xs font-semibold rounded-xl text-on-surface"
-                >
-                  Apply
-                </button>
-              </div>
+            {/* Photo Guidelines */}
+            <div className="pt-3 border-t border-surface-container text-left space-y-1.5">
+              <span className="text-[11px] font-semibold text-on-surface">Photo Guidelines:</span>
+              <p className="text-[11px] text-on-surface-variant leading-relaxed">
+                Upload a clear corporate portrait or headshot. Supported formats: JPG, PNG, WebP (maximum 5MB).
+              </p>
             </div>
           </div>
         </div>
