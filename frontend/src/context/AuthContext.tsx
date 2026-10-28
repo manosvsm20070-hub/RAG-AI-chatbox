@@ -35,12 +35,44 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const getPersistedAvatar = (identifier?: string): string | null => {
+  if (!identifier) return null;
+  try {
+    const raw = localStorage.getItem('nexus_user_avatars');
+    if (raw) {
+      const map = JSON.parse(raw);
+      return map[identifier.toLowerCase()] || null;
+    }
+  } catch (e) {}
+  return null;
+};
+
+const setPersistedAvatar = (identifiers: (string | undefined)[], avatarUrl: string) => {
+  try {
+    const raw = localStorage.getItem('nexus_user_avatars');
+    const map = raw ? JSON.parse(raw) : {};
+    identifiers.forEach((id) => {
+      if (id) {
+        map[id.toLowerCase()] = avatarUrl;
+      }
+    });
+    localStorage.setItem('nexus_user_avatars', JSON.stringify(map));
+  } catch (e) {
+    console.error('Failed to persist avatar map', e);
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('nexus_user');
     if (savedUser) {
       try {
-        return JSON.parse(savedUser);
+        const parsed = JSON.parse(savedUser);
+        const customAvatar = getPersistedAvatar(parsed.email) || getPersistedAvatar(parsed.id);
+        if (customAvatar) {
+          return { ...parsed, avatar: customAvatar };
+        }
+        return parsed;
       } catch (e) {
         return null;
       }
@@ -70,7 +102,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedUser = localStorage.getItem('nexus_user');
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        const customAvatar = getPersistedAvatar(parsed.email) || getPersistedAvatar(parsed.id);
+        if (customAvatar) {
+          setUser({ ...parsed, avatar: customAvatar });
+        } else {
+          setUser(parsed);
+        }
       } catch (e) {
         setUser(null);
       }
@@ -203,8 +241,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             error: 'Invalid password. Please check your credentials.',
           };
         }
-        setUser(hrUserMock);
-        localStorage.setItem('nexus_user', JSON.stringify(hrUserMock));
+        const customHRAvatar =
+          getPersistedAvatar(HR_CREDENTIALS.email) ||
+          getPersistedAvatar(HR_CREDENTIALS.id) ||
+          getPersistedAvatar('usr-lohan-hr') ||
+          hrUserMock.avatar;
+
+        const authenticatedHR: User = {
+          ...hrUserMock,
+          avatar: customHRAvatar,
+        };
+
+        setUser(authenticatedHR);
+        localStorage.setItem('nexus_user', JSON.stringify(authenticatedHR));
         api.setToken('mock-jwt-hr-session-active');
         return { success: true };
       }
@@ -226,12 +275,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
         }
 
+        const customUserAvatar =
+          getPersistedAvatar(matchedUser.email) ||
+          getPersistedAvatar(matchedUser.id) ||
+          matchedUser.avatar;
+
         const safeUser: User = {
           id: matchedUser.id,
           name: matchedUser.name,
           email: matchedUser.email,
           role: matchedUser.role,
-          avatar: matchedUser.avatar,
+          avatar: customUserAvatar,
           department: matchedUser.department,
           title: matchedUser.title,
           preferredLanguage: matchedUser.preferredLanguage,
@@ -271,11 +325,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     const updated = { ...user, avatar: avatarUrl };
     setUser(updated);
+
     try {
       localStorage.setItem('nexus_user', JSON.stringify(updated));
     } catch (e) {
       console.error('Failed to save updated avatar', e);
     }
+
+    // Persist permanently in the avatar store
+    setPersistedAvatar([user.email, user.id], avatarUrl);
 
     setManagedUsers((prev) => {
       const exists = prev.some(

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   User,
   Mail,
@@ -29,6 +29,13 @@ export const ProfileView: React.FC = () => {
   const [selectedAvatar, setSelectedAvatar] = useState<string>(defaultAvatar);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
+  // Sync with user avatar changes
+  useEffect(() => {
+    if (user?.avatar) {
+      setSelectedAvatar(user.avatar);
+    }
+  }, [user?.avatar]);
+
   // Language state
   const [preferredLang, setPreferredLang] = useState(user?.preferredLanguage || 'auto');
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -36,8 +43,42 @@ export const ProfileView: React.FC = () => {
   // File upload ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Resize and compress image using HTML5 Canvas to ensure crisp headshot and fit in localStorage
+  const compressAndProcessImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = 300; // 300x300 high resolution avatar
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(reader.result as string);
+            return;
+          }
+
+          // Center-crop to square
+          const minDim = Math.min(img.width, img.height);
+          const startX = (img.width - minDim) / 2;
+          const startY = (img.height - minDim) / 2;
+
+          ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          resolve(dataUrl);
+        };
+        img.onerror = () => reject(new Error('Failed to load image.'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file.'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Handle local file upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhotoError(null);
     const file = e.target.files?.[0];
     if (!file) return;
@@ -47,18 +88,28 @@ export const ProfileView: React.FC = () => {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setPhotoError('Image size exceeds 5MB. Please choose a smaller image.');
+    if (file.size > 8 * 1024 * 1024) {
+      setPhotoError('Image size exceeds 8MB. Please choose a smaller image.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setSelectedAvatar(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressedDataUrl = await compressAndProcessImage(file);
+      setSelectedAvatar(compressedDataUrl);
+      // Auto-save and persist immediately so it never gets lost on logout/relogin
+      updateAvatar(compressedDataUrl);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err) {
+      setPhotoError('Could not process this image. Please try another image.');
+    }
+  };
+
+  const handleResetPhoto = () => {
+    setSelectedAvatar(defaultAvatar);
+    updateAvatar(defaultAvatar);
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2500);
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -171,7 +222,7 @@ export const ProfileView: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedAvatar(defaultAvatar)}
+                  onClick={handleResetPhoto}
                   className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface-variant text-xs font-semibold rounded-xl transition-colors"
                 >
                   Reset Photo
