@@ -22,7 +22,7 @@ import { dashboardMetricsMock, recentActivityMock } from '../api/mockData';
 
 export const DashboardView: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isHR } = useAuth();
   const [quickQuery, setQuickQuery] = useState('');
 
   const handleQuickAsk = (e: React.FormEvent) => {
@@ -43,16 +43,22 @@ export const DashboardView: React.FC = () => {
           <MapPin className="w-3.5 h-3.5" />
           <span>Active: Chennai Engine v1.4</span>
         </div>
-        <span className="text-[11px] text-outline">Updated 4m ago</span>
+        {isHR ? (
+          <span className="text-[11px] font-bold text-primary bg-primary-fixed/60 px-2.5 py-0.5 rounded-full">
+            HR Mode: Full Administration
+          </span>
+        ) : (
+          <span className="text-[11px] text-outline">View-Only Mode</span>
+        )}
       </div>
 
       {/* Greeting Header */}
       <div className="space-y-1">
         <h1 className="font-heading font-bold text-2xl md:text-3xl text-on-surface tracking-tight">
-          Good morning, {user?.name.split(' ')[0] || 'Alex'}.
+          Good morning, {user?.name.split(' ')[0] || 'Lohan'}.
         </h1>
         <p className="text-sm text-on-surface-variant font-medium">
-          Here is your company workspace overview.
+          {isHR ? 'HR Administration & Talent Workspace.' : 'Here is your company workspace overview.'}
         </p>
       </div>
 
@@ -62,8 +68,8 @@ export const DashboardView: React.FC = () => {
           onClick={() => navigate('/documents')}
           className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-container text-white py-3 px-3 rounded-2xl text-xs font-semibold shadow-sm shadow-primary/20 transition-all hover:shadow-md"
         >
-          <Upload className="w-4 h-4" />
-          <span className="truncate">+ Upload Doc</span>
+          {isHR ? <Upload className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+          <span className="truncate">{isHR ? '+ Upload Doc' : 'Documents'}</span>
         </button>
 
         <button
@@ -78,8 +84,8 @@ export const DashboardView: React.FC = () => {
           onClick={() => navigate('/tasks')}
           className="flex items-center justify-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface py-3 px-3 rounded-2xl text-xs font-semibold transition-colors"
         >
-          <PlusCircle className="w-4 h-4 text-on-surface-variant" />
-          <span className="truncate">+ Create Task</span>
+          {isHR ? <PlusCircle className="w-4 h-4 text-primary" /> : <ListTodo className="w-4 h-4 text-on-surface-variant" />}
+          <span className="truncate">{isHR ? '+ Create Task' : 'Pending Tasks'}</span>
         </button>
       </div>
 

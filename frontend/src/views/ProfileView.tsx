@@ -3,8 +3,8 @@ import { User, Mail, Building2, Globe2, Shield, Save, CheckCircle2 } from 'lucid
 import { useAuth } from '../context/AuthContext';
 
 export const ProfileView: React.FC = () => {
-  const { user, updateLanguage } = useAuth();
-  const [name, setName] = useState(user?.name || 'Alex Rivera');
+  const { user, updateLanguage, isHR } = useAuth();
+  const [name, setName] = useState(user?.name || 'Lohan K J');
   const [preferredLang, setPreferredLang] = useState(user?.preferredLanguage || 'auto');
   const [saved, setSaved] = useState(false);
 
@@ -30,7 +30,7 @@ export const ProfileView: React.FC = () => {
         {/* Profile Card Header */}
         <div className="flex items-center gap-4 pb-6 border-b border-surface-container">
           <img
-            src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
+            src={user?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"}
             alt={user?.name}
             className="w-16 h-16 rounded-full object-cover ring-4 ring-primary/20"
           />
@@ -41,9 +41,16 @@ export const ProfileView: React.FC = () => {
             <p className="text-xs text-on-surface-variant">
               {user?.title} • {user?.department}
             </p>
-            <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-fixed text-primary">
-              Role: {user?.role}
-            </span>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-fixed text-primary">
+                Role: {user?.role.toUpperCase()}
+              </span>
+              {isHR && (
+                <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  Full HR Privileges
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -80,7 +87,7 @@ export const ProfileView: React.FC = () => {
                 <input
                   type="email"
                   disabled
-                  value={user?.email || 'alex.rivera@nexuscorp.ai'}
+                  value={user?.email || 'lohankanagaraj@gmail.com'}
                   className="w-full bg-surface-container-low/60 pl-10 pr-4 py-2.5 rounded-xl text-xs text-outline border border-surface-container cursor-not-allowed"
                 />
               </div>

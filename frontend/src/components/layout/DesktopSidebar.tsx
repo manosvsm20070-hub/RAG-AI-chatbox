@@ -22,7 +22,7 @@ import { useAuth } from '../../context/AuthContext';
 export const DesktopSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, isHR } = useAuth();
 
   const navigationGroups = [
     {
@@ -38,7 +38,7 @@ export const DesktopSidebar: React.FC = () => {
       title: 'MANAGEMENT',
       items: [
         { label: 'Team Directory', path: '/teams', icon: Users },
-        { label: 'HR Workspace', path: '/teams/hr', icon: Briefcase },
+        ...(isHR ? [{ label: 'HR Workspace', path: '/teams/hr', icon: Briefcase, badge: 'HR Only' }] : []),
         { label: 'Project Portfolio', path: '/projects', icon: FolderGit2 },
         { label: 'Pending Tasks', path: '/tasks', icon: CheckSquare, badge: '3 Overdue' },
         { label: 'Employee Feedback', path: '/feedback', icon: MessageCircle },

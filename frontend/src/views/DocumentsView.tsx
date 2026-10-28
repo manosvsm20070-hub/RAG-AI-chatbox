@@ -11,13 +11,17 @@ import {
   MoreVertical,
   CheckCircle2,
   Trash2,
-  ArrowUpDown
+  ArrowUpDown,
+  Lock,
+  ShieldCheck
 } from 'lucide-react';
 import { documentsMock } from '../api/mockData';
 import { DocumentItem } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export const DocumentsView: React.FC = () => {
   const navigate = useNavigate();
+  const { isHR, user } = useAuth();
   const [documents, setDocuments] = useState<DocumentItem[]>(documentsMock);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -136,33 +140,85 @@ export const DocumentsView: React.FC = () => {
         ))}
       </div>
 
-      {/* Upload Drop Zone Card (Stitch Exact) */}
-      <label className="block cursor-pointer">
-        <input
-          type="file"
-          accept=".pdf,.docx,.txt"
-          onChange={handleSimulateUpload}
-          className="hidden"
-        />
-        <div className="border-2 border-dashed border-primary/40 hover:border-primary bg-primary-fixed/20 hover:bg-primary-fixed/30 rounded-3xl p-5 flex items-center justify-between transition-all group">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-sm shadow-primary/30 group-hover:scale-105 transition-transform">
-              <UploadCloud className="w-6 h-6" />
+      {/* Role-based Access Banner */}
+      <div className={`p-4 rounded-2xl border text-xs flex items-center justify-between gap-3 ${
+        isHR 
+          ? 'bg-primary-fixed/20 border-primary/20 text-on-surface'
+          : 'bg-surface-container-low border-surface-container text-on-surface-variant'
+      }`}>
+        <div className="flex items-center gap-2.5">
+          {isHR ? (
+            <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+          ) : (
+            <Lock className="w-4 h-4 text-outline shrink-0" />
+          )}
+          <span>
+            {isHR ? (
+              <>
+                <strong className="text-primary">HR Authorized:</strong> You have full rights to upload, chunk, index and delete corporate documents.
+              </>
+            ) : (
+              <>
+                <strong className="text-on-surface">View-Only Access:</strong> Document ingestion and deletion are restricted to HR (<span className="text-primary font-medium">lohankanagaraj@gmail.com</span>). You can view, search and query documents via AI.
+              </>
+            )}
+          </span>
+        </div>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+          isHR ? 'bg-primary text-white' : 'bg-surface-container text-outline'
+        }`}>
+          {isHR ? 'HR Admin' : 'Read Only'}
+        </span>
+      </div>
+
+      {/* Upload Drop Zone Card - Only for HR */}
+      {isHR ? (
+        <label className="block cursor-pointer">
+          <input
+            type="file"
+            accept=".pdf,.docx,.txt"
+            onChange={handleSimulateUpload}
+            className="hidden"
+          />
+          <div className="border-2 border-dashed border-primary/40 hover:border-primary bg-primary-fixed/20 hover:bg-primary-fixed/30 rounded-3xl p-5 flex items-center justify-between transition-all group">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-sm shadow-primary/30 group-hover:scale-105 transition-transform">
+                <UploadCloud className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-heading font-bold text-sm text-on-surface">
+                  Tap to upload PDF, DOCX, TXT
+                </h3>
+                <p className="text-xs text-on-surface-variant">
+                  Auto-chunked, embedded via pgvector
+                </p>
+              </div>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center shadow-xs">
+              <Plus className="w-4 h-4" />
+            </div>
+          </div>
+        </label>
+      ) : (
+        <div className="border border-surface-container bg-surface-container-low/60 rounded-3xl p-4 flex items-center justify-between opacity-80">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-surface-container flex items-center justify-center text-outline">
+              <Lock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-heading font-bold text-sm text-on-surface">
-                Tap to upload PDF, DOCX, TXT
+              <h3 className="font-heading font-bold text-xs md:text-sm text-on-surface">
+                Upload New Documents (HR Authorization Required)
               </h3>
-              <p className="text-xs text-on-surface-variant">
-                Auto-chunked, embedded via pgvector
+              <p className="text-[11px] text-on-surface-variant">
+                Sign in with lohankanagaraj@gmail.com to upload and manage documents
               </p>
             </div>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center shadow-xs">
-            <Plus className="w-4 h-4" />
-          </div>
+          <span className="text-[10px] font-bold text-outline uppercase tracking-wider bg-surface-container px-2 py-0.5 rounded-full">
+            Locked
+          </span>
         </div>
-      </label>
+      )}
 
       {/* In-Progress Ingestion Card (Stitch Exact) */}
       <div className="bg-surface-container-lowest border border-surface-container-high rounded-3xl p-4 shadow-subtle space-y-3">
@@ -248,14 +304,23 @@ export const DocumentsView: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDelete(doc.id)}
-                    title="Remove document"
-                    aria-label={`Delete document ${doc.title}`}
-                    className="p-1 rounded-lg text-outline hover:text-error hover:bg-error-container/20 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {isHR ? (
+                    <button
+                      onClick={() => handleDelete(doc.id)}
+                      title="Remove document"
+                      aria-label={`Delete document ${doc.title}`}
+                      className="p-1 rounded-lg text-outline hover:text-error hover:bg-error-container/20 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <span 
+                      title="Delete restricted to HR"
+                      className="p-1 text-outline/50 cursor-not-allowed"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                    </span>
+                  )}
                 </div>
 
                 {/* Metadata Badges & Ask AI Action */}

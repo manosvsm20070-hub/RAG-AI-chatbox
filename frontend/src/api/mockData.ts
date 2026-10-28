@@ -11,6 +11,23 @@ export const currentUserMock: User = {
   preferredLanguage: 'auto'
 };
 
+export const hrUserMock: User = {
+  id: 'usr-lohan-hr',
+  name: 'Lohan K J',
+  email: 'lohankanagaraj@gmail.com',
+  role: 'hr',
+  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  department: 'Human Resources & Talent Management',
+  title: 'Head of Human Resources (HR Lead)',
+  preferredLanguage: 'auto'
+};
+
+export const HR_CREDENTIALS = {
+  email: 'lohankanagaraj@gmail.com',
+  password: 'Lohan K J',
+  role: 'hr' as const
+};
+
 export const dashboardMetricsMock: MetricPulse = {
   totalTeams: 12,
   totalTeamsDelta: '+2 New',

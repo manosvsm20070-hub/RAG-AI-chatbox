@@ -1,10 +1,12 @@
 export type LanguageMode = 'auto' | 'en' | 'ta' | 'tanglish';
 
+export type UserRole = 'admin' | 'lead' | 'member' | 'hr';
+
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'lead' | 'member';
+  role: UserRole;
   avatar: string;
   department: string;
   title: string;

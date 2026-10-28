@@ -24,7 +24,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export const WorkspaceDrawer: React.FC = () => {
   const { isDrawerOpen, setIsDrawerOpen } = useWorkspace();
-  const { logout, user } = useAuth();
+  const { logout, user, isHR } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -72,7 +72,7 @@ export const WorkspaceDrawer: React.FC = () => {
       title: 'MANAGEMENT',
       items: [
         { label: 'Team Management', path: '/teams', icon: Users },
-        { label: 'HR Team', path: '/teams/hr', icon: Briefcase },
+        ...(isHR ? [{ label: 'HR Workspace', path: '/teams/hr', icon: Briefcase, badge: 'HR Only' }] : []),
         { label: 'Project Overview', path: '/projects', icon: FolderGit2 },
         { label: 'Pending Tasks', path: '/tasks', icon: CheckSquare, badge: '3 Overdue' },
         { label: 'Employee Feedback', path: '/feedback', icon: MessageCircle },

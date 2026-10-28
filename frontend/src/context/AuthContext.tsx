@@ -1,13 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
-import { currentUserMock } from '../api/mockData';
+import { User, UserRole } from '../types';
+import { currentUserMock, hrUserMock, HR_CREDENTIALS } from '../api/mockData';
 import { api } from '../api/client';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, role?: 'admin' | 'lead' | 'member') => Promise<void>;
+  isHR: boolean;
+  canManageDocuments: boolean;
+  canAllocateTeam: boolean;
+  canCreateTasks: boolean;
+  canAccessHRWorkspace: boolean;
+  login: (email: string, password?: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateLanguage: (lang: User['preferredLanguage']) => void;
 }
@@ -15,7 +20,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(currentUserMock);
+  const [user, setUser] = useState<User | null>(hrUserMock);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -25,18 +30,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setUser(JSON.parse(savedUser));
       } catch (e) {
-        setUser(currentUserMock);
+        setUser(hrUserMock);
       }
+    } else {
+      // Default to HR user session
+      setUser(hrUserMock);
+      localStorage.setItem('nexus_user', JSON.stringify(hrUserMock));
     }
   }, []);
 
-  const login = async (email: string, role: 'admin' | 'lead' | 'member' = 'lead') => {
+  const login = async (
+    email: string,
+    password?: string,
+    role: UserRole = 'lead'
+  ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // Check if trying to sign in as HR Lohan K J
+      if (normalizedEmail === HR_CREDENTIALS.email.toLowerCase()) {
+        if (password && password.trim() !== HR_CREDENTIALS.password) {
+          return {
+            success: false,
+            error: 'Invalid password. For HR account (lohankanagaraj@gmail.com), use password: Lohan K J',
+          };
+        }
+        setUser(hrUserMock);
+        localStorage.setItem('nexus_user', JSON.stringify(hrUserMock));
+        return { success: true };
+      }
+
+      // Standard user flow
       const res = await api.login(email);
-      const updatedUser: User = { ...res.user, email, role };
+      const updatedUser: User = {
+        ...res.user,
+        email,
+        role: role === 'hr' ? 'hr' : role,
+      };
       setUser(updatedUser);
       localStorage.setItem('nexus_user', JSON.stringify(updatedUser));
+      return { success: true };
     } finally {
       setIsLoading(false);
     }
@@ -55,12 +89,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('nexus_user', JSON.stringify(updated));
   };
 
+  const isHR =
+    !!user &&
+    (user.role === 'hr' || user.email.toLowerCase() === 'lohankanagaraj@gmail.com');
+
   return (
     <AuthContext.Provider
       value={{
         user,
         isAuthenticated: !!user,
         isLoading,
+        isHR,
+        canManageDocuments: isHR,
+        canAllocateTeam: isHR,
+        canCreateTasks: isHR,
+        canAccessHRWorkspace: isHR,
         login,
         logout,
         updateLanguage,

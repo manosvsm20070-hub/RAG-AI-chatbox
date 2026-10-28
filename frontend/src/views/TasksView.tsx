@@ -13,13 +13,17 @@ import {
   ArrowUpDown,
   Plus,
   Lightbulb,
-  Check
+  Check,
+  Lock,
+  ShieldCheck
 } from 'lucide-react';
 import { tasksMock } from '../api/mockData';
 import { Task } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export const TasksView: React.FC = () => {
   const navigate = useNavigate();
+  const { isHR, user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>(tasksMock);
   const [activeTab, setActiveTab] = useState<'all' | 'my' | 'overdue'>('my');
   const [selectedTeam, setSelectedTeam] = useState('All Teams');
@@ -28,6 +32,7 @@ export const TasksView: React.FC = () => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskProject, setNewTaskProject] = useState('Corporate Governance');
   const [newTaskPriority, setNewTaskPriority] = useState<'high' | 'medium' | 'low'>('medium');
+  const [newTaskAssignee, setNewTaskAssignee] = useState('Alex Rivera');
 
   const toggleTaskCompletion = (id: string) => {
     setTasks(tasks.map(t => {
@@ -43,23 +48,33 @@ export const TasksView: React.FC = () => {
 
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isHR) return;
     if (!newTaskTitle.trim()) return;
+
+    const assigneeMap: Record<string, string> = {
+      'Alex Rivera': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      'Priya S.': 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+      'Karthik R.': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      'Entire All-Hands': 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150&auto=format&fit=crop&q=80',
+      'Lohan K J': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+    };
 
     const newTask: Task = {
       id: `task-${Date.now()}`,
       title: newTaskTitle,
       project: newTaskProject,
-      team: 'Engineering Squad',
+      team: 'HR & Governance Dispatch',
       dueDate: new Date().toISOString(),
       dueDateLabel: 'Today, 6:00 PM',
       priority: newTaskPriority,
       status: 'in_progress',
       assignee: {
-        name: 'Alex Rivera',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+        name: newTaskAssignee,
+        avatar: assigneeMap[newTaskAssignee] || assigneeMap['Alex Rivera']
       },
       attachmentsCount: 0,
-      commentsCount: 0
+      commentsCount: 0,
+      note: 'Assigned by HR'
     };
 
     setTasks([newTask, ...tasks]);
@@ -68,7 +83,10 @@ export const TasksView: React.FC = () => {
   };
 
   const filteredTasks = tasks.filter(task => {
-    if (activeTab === 'my' && task.assignee.name !== 'Alex Rivera' && task.assignee.name !== 'Entire All-Hands') return false;
+    if (activeTab === 'my') {
+      if (isHR) return true;
+      if (task.assignee.name !== (user?.name || 'Alex Rivera') && task.assignee.name !== 'Entire All-Hands') return false;
+    }
     if (activeTab === 'overdue' && !task.isOverdue && task.status !== 'overdue') return false;
     if (selectedPriority !== 'All Priorities' && task.priority.toLowerCase() !== selectedPriority.toLowerCase()) return false;
     return true;
@@ -93,6 +111,37 @@ export const TasksView: React.FC = () => {
         <p className="text-xs md:text-sm text-on-surface-variant font-medium">
           Day-to-day balance, intelligent workflows and governance.
         </p>
+      </div>
+
+      {/* Role Banner */}
+      <div className={`p-4 rounded-2xl border text-xs flex items-center justify-between gap-3 ${
+        isHR 
+          ? 'bg-primary-fixed/20 border-primary/20 text-on-surface'
+          : 'bg-surface-container-low border-surface-container text-on-surface-variant'
+      }`}>
+        <div className="flex items-center gap-2.5">
+          {isHR ? (
+            <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+          ) : (
+            <Lock className="w-4 h-4 text-outline shrink-0" />
+          )}
+          <span>
+            {isHR ? (
+              <>
+                <strong className="text-primary">HR Task Rights:</strong> You have exclusive authorization to create, assign and configure squad action items.
+              </>
+            ) : (
+              <>
+                <strong className="text-on-surface">View-Only Access:</strong> Task creation is strictly restricted to HR (<span className="text-primary font-medium">lohankanagaraj@gmail.com</span>). You can view assigned tasks and status.
+              </>
+            )}
+          </span>
+        </div>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+          isHR ? 'bg-primary text-white' : 'bg-surface-container text-outline'
+        }`}>
+          {isHR ? 'HR Rights' : 'View Only'}
+        </span>
       </div>
 
       {/* Weekly AI Throughput Card (Stitch Exact) */}
@@ -344,28 +393,35 @@ export const TasksView: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Action Button (+ Create Task) */}
-      <div className="fixed bottom-20 md:bottom-8 right-6 z-30">
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 bg-primary hover:bg-primary-container text-white px-5 py-3.5 rounded-full font-heading font-bold text-xs shadow-elevated hover:shadow-primary/40 transition-all hover:scale-105"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create Task</span>
-        </button>
-      </div>
+      {/* Floating Action Button (+ Create Task - HR Only) */}
+      {isHR && (
+        <div className="fixed bottom-20 md:bottom-8 right-6 z-30">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 bg-primary hover:bg-primary-container text-white px-5 py-3.5 rounded-full font-heading font-bold text-xs shadow-elevated hover:shadow-primary/40 transition-all hover:scale-105"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create Task</span>
+          </button>
+        </div>
+      )}
 
-      {/* Modal for Creating Task */}
-      {showCreateModal && (
+      {/* Modal for Creating Task - HR Only */}
+      {showCreateModal && isHR && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
             onClick={() => setShowCreateModal(false)}
             className="fixed inset-0 bg-on-surface/40 backdrop-blur-sm"
           />
           <div className="relative z-50 bg-surface-container-lowest w-full max-w-md rounded-3xl shadow-elevated border border-surface-container-high p-6 space-y-4">
-            <h3 className="font-heading font-bold text-lg text-on-surface">
-              Create New Task
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading font-bold text-lg text-on-surface">
+                Create & Assign Task
+              </h3>
+              <span className="text-[10px] font-bold text-primary bg-primary-fixed px-2 py-0.5 rounded-full uppercase">
+                HR Authority
+              </span>
+            </div>
             <form onSubmit={handleCreateTask} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-on-surface-variant mb-1">
@@ -379,6 +435,23 @@ export const TasksView: React.FC = () => {
                   placeholder="e.g. Verify pgvector chunk embeddings"
                   className="w-full bg-surface-container-low border border-surface-container px-3.5 py-2.5 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant mb-1">
+                  Assign Squad Member
+                </label>
+                <select
+                  value={newTaskAssignee}
+                  onChange={(e) => setNewTaskAssignee(e.target.value)}
+                  className="w-full bg-surface-container-low border border-surface-container px-3.5 py-2.5 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                >
+                  <option value="Alex Rivera">Alex Rivera (Lead Architect)</option>
+                  <option value="Priya S.">Priya S. (AI Engineer)</option>
+                  <option value="Karthik R.">Karthik R. (Mobile Engineer)</option>
+                  <option value="Entire All-Hands">Entire All-Hands (All Squads)</option>
+                  <option value="Lohan K J">Lohan K J (Self - HR Lead)</option>
+                </select>
               </div>
 
               <div>
@@ -433,7 +506,7 @@ export const TasksView: React.FC = () => {
                   type="submit"
                   className="px-5 py-2 text-xs font-bold bg-primary hover:bg-primary-container text-white rounded-xl shadow-sm"
                 >
-                  Add Task
+                  Dispatch Task
                 </button>
               </div>
             </form>

@@ -1,19 +1,71 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, FileText, CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { Briefcase, FileText, CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, ArrowRight, Lock, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const HRWorkspaceView: React.FC = () => {
   const navigate = useNavigate();
+  const { isHR, user } = useAuth();
+
+  if (!isHR) {
+    return (
+      <div className="space-y-6 max-w-2xl mx-auto py-12 animate-in fade-in duration-200 text-center">
+        <div className="bg-surface-container-lowest border border-error/20 rounded-3xl p-8 shadow-card space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-error-container text-error flex items-center justify-center mx-auto shadow-sm">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-error bg-error-container/50 px-3 py-1 rounded-full">
+              Restricted Area • HR Only
+            </span>
+            <h1 className="font-heading font-bold text-2xl text-on-surface">
+              HR Workspace Access Denied
+            </h1>
+            <p className="text-xs text-on-surface-variant max-w-md mx-auto leading-relaxed">
+              This workspace contains confidential employee policies, compensation benchmarks, and compliance reviews. Access is strictly limited to authorized HR personnel (<span className="font-semibold text-primary">lohankanagaraj@gmail.com</span>).
+            </p>
+          </div>
+
+          <div className="bg-surface-container-low p-3.5 rounded-2xl border border-surface-container text-xs text-on-surface-variant">
+            <span>Currently logged in as: </span>
+            <span className="font-semibold text-on-surface">{user?.name || 'Guest'}</span>
+            <span className="text-outline"> ({user?.email || 'No email'} • Role: {user?.role})</span>
+          </div>
+
+          <div className="pt-2 flex justify-center gap-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-container transition-colors shadow-sm"
+            >
+              Return to Dashboard
+            </button>
+            <button
+              onClick={() => navigate('/auth/signin')}
+              className="px-5 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors"
+            >
+              Switch to HR Account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-200">
-      <div>
-        <h1 className="font-heading font-bold text-2xl text-on-surface">
-          HR Team Workspace & Compliance Hub
-        </h1>
-        <p className="text-xs text-on-surface-variant">
-          Policy governance, leave approval thresholds, and bilingual compliance guidelines
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h1 className="font-heading font-bold text-2xl text-on-surface">
+            HR Team Workspace & Compliance Hub
+          </h1>
+          <p className="text-xs text-on-surface-variant">
+            Policy governance, leave approval thresholds, and bilingual compliance guidelines
+          </p>
+        </div>
+        <div className="flex items-center gap-2 bg-primary-fixed/50 border border-primary/20 px-3 py-1.5 rounded-full text-xs font-semibold text-primary self-start sm:self-auto">
+          <ShieldCheck className="w-4 h-4" />
+          <span>Verified HR User: {user?.email}</span>
+        </div>
       </div>
 
       {/* Compliance Overview Banner */}
