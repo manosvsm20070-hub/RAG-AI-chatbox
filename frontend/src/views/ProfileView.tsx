@@ -14,12 +14,15 @@ import {
   Sparkles,
   RefreshCw,
   BadgeCheck,
-  AlertCircle
+  AlertCircle,
+  Key,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const ProfileView: React.FC = () => {
-  const { user, updateLanguage, updateAvatar, isHR } = useAuth();
+  const { user, updateLanguage, updateAvatar, changePassword, isHR } = useAuth();
 
   const defaultAvatar =
     user?.avatar ||
@@ -39,6 +42,17 @@ export const ProfileView: React.FC = () => {
   // Language state
   const [preferredLang, setPreferredLang] = useState(user?.preferredLanguage || 'auto');
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Password change state
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
 
   // File upload ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +132,52 @@ export const ProfileView: React.FC = () => {
     updateLanguage(preferredLang as any);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
+  };
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!oldPassword.trim()) {
+      setPasswordError('Please enter your current (old) password.');
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      setPasswordError('Please enter a new password.');
+      return;
+    }
+
+    if (newPassword.trim().length < 6) {
+      setPasswordError('New password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newPassword.trim() !== confirmPassword.trim()) {
+      setPasswordError('New password and confirmation do not match.');
+      return;
+    }
+
+    if (oldPassword.trim() === newPassword.trim()) {
+      setPasswordError('New password cannot be the same as your current password.');
+      return;
+    }
+
+    setIsSubmittingPassword(true);
+    const result = changePassword(oldPassword, newPassword);
+    setIsSubmittingPassword(false);
+
+    if (!result.success) {
+      setPasswordError(result.error || 'Failed to update password.');
+      return;
+    }
+
+    setPasswordSuccess('Password changed successfully! Please use your new password next time you sign in.');
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setTimeout(() => setPasswordSuccess(null), 4000);
   };
 
   return (
@@ -448,6 +508,138 @@ export const ProfileView: React.FC = () => {
             </form>
           </div>
         </div>
+      </div>
+
+      {/* Account Security & Password Change Section */}
+      <div className="bg-surface-container-lowest border border-surface-container-high rounded-3xl p-6 shadow-subtle space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-surface-container pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <Key className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-heading font-bold text-sm text-on-surface">
+                Account Security & Password
+              </h2>
+              <p className="text-[11px] text-on-surface-variant">
+                Change your login password by verifying your current old password
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary-fixed/40 px-2.5 py-1 rounded-full self-start sm:self-auto">
+            Old Password Verification Required
+          </span>
+        </div>
+
+        {passwordSuccess && (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-xs p-3.5 rounded-2xl flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-medium">{passwordSuccess}</span>
+          </div>
+        )}
+
+        {passwordError && (
+          <div className="bg-error-container/40 border border-error/30 text-error text-xs p-3.5 rounded-2xl flex items-center gap-2 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 text-error shrink-0" />
+            <span className="font-medium">{passwordError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Current / Old Password */}
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1">
+                Current (Old) Password *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showOldPassword ? 'text' : 'password'}
+                  required
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="w-full bg-surface-container-low pl-10 pr-10 py-2.5 rounded-xl text-xs text-on-surface border border-surface-container focus:outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                  aria-label={showOldPassword ? "Hide password" : "Show password"}
+                  className="p-1 text-outline hover:text-on-surface absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  {showOldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* New Password */}
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1">
+                New Password *
+              </label>
+              <div className="relative">
+                <Key className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min. 6 characters"
+                  className="w-full bg-surface-container-low pl-10 pr-10 py-2.5 rounded-xl text-xs text-on-surface border border-surface-container focus:outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  aria-label={showNewPassword ? "Hide password" : "Show password"}
+                  className="p-1 text-outline hover:text-on-surface absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm New Password */}
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1">
+                Confirm New Password *
+              </label>
+              <div className="relative">
+                <Check className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter new password"
+                  className="w-full bg-surface-container-low pl-10 pr-10 py-2.5 rounded-xl text-xs text-on-surface border border-surface-container focus:outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  className="p-1 text-outline hover:text-on-surface absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <span className="text-[11px] text-outline">
+              For security, you must provide your correct old password to confirm changes.
+            </span>
+            <button
+              type="submit"
+              disabled={isSubmittingPassword}
+              className="flex items-center gap-2 bg-primary hover:bg-primary-container text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-primary/25 hover:scale-[1.01] self-start sm:self-auto"
+            >
+              <Key className="w-3.5 h-3.5" />
+              <span>Update Password</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

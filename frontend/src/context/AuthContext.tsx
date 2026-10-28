@@ -31,6 +31,7 @@ interface AuthContextType {
   logout: () => void;
   updateLanguage: (lang: User['preferredLanguage']) => void;
   updateAvatar: (avatarUrl: string) => void;
+  changePassword: (oldPassword: string, newPassword: string) => { success: boolean; error?: string };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -224,16 +225,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cleanIdentifier === 'hr-001';
 
       if (isHREmail || isHRId) {
+        const effectiveHRPassword =
+          localStorage.getItem('nexus_hr_password') || HR_CREDENTIALS.password;
+
         const inputClean = cleanPassword.toLowerCase().replace(/\s+/g, ' ');
-        const targetClean = HR_CREDENTIALS.password.toLowerCase().replace(/\s+/g, ' ');
+        const targetClean = effectiveHRPassword.toLowerCase().replace(/\s+/g, ' ');
         const inputNoSpace = cleanPassword.replace(/\s+/g, '').toLowerCase();
-        const targetNoSpace = HR_CREDENTIALS.password.replace(/\s+/g, '').toLowerCase();
+        const targetNoSpace = effectiveHRPassword.replace(/\s+/g, '').toLowerCase();
 
         const isPasswordValid = 
-          !password || 
+          cleanPassword === effectiveHRPassword ||
           inputClean === targetClean || 
-          inputNoSpace === targetNoSpace ||
-          cleanPassword === 'Lohan K J';
+          inputNoSpace === targetNoSpace;
 
         if (!isPasswordValid) {
           return {
@@ -354,6 +357,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const changePassword = (
+    oldPassword: string,
+    newPassword: string
+  ): { success: boolean; error?: string } => {
+    if (!user) {
+      return { success: false, error: 'You must be logged in to change your password.' };
+    }
+
+    const cleanOld = oldPassword.trim();
+    const cleanNew = newPassword.trim();
+
+    if (!cleanOld || !cleanNew) {
+      return { success: false, error: 'Current password and new password are required.' };
+    }
+
+    if (cleanNew.length < 6) {
+      return { success: false, error: 'New password must be at least 6 characters long.' };
+    }
+
+    if (cleanOld === cleanNew) {
+      return { success: false, error: 'New password cannot be the same as your current password.' };
+    }
+
+    // HR User Password Change
+    if (isHR || user.email.toLowerCase() === HR_CREDENTIALS.email.toLowerCase()) {
+      const currentHRPassword =
+        localStorage.getItem('nexus_hr_password') || HR_CREDENTIALS.password;
+
+      const inputClean = cleanOld.toLowerCase().replace(/\s+/g, ' ');
+      const targetClean = currentHRPassword.toLowerCase().replace(/\s+/g, ' ');
+      const inputNoSpace = cleanOld.replace(/\s+/g, '').toLowerCase();
+      const targetNoSpace = currentHRPassword.replace(/\s+/g, '').toLowerCase();
+
+      const isOldValid =
+        cleanOld === currentHRPassword ||
+        inputClean === targetClean ||
+        inputNoSpace === targetNoSpace;
+
+      if (!isOldValid) {
+        return {
+          success: false,
+          error: 'Current password does not match. Please verify your old password.',
+        };
+      }
+
+      try {
+        localStorage.setItem('nexus_hr_password', cleanNew);
+      } catch (e) {
+        console.error('Failed to save HR password', e);
+      }
+      return { success: true };
+    }
+
+    // Managed User Password Change
+    const targetUserIndex = managedUsers.findIndex(
+      (u) =>
+        u.id.toLowerCase() === user.id.toLowerCase() ||
+        u.email.toLowerCase() === user.email.toLowerCase()
+    );
+
+    if (targetUserIndex !== -1) {
+      const currentStored = managedUsers[targetUserIndex].password;
+      if (currentStored !== cleanOld) {
+        return {
+          success: false,
+          error: 'Current password does not match. Please verify your old password.',
+        };
+      }
+
+      const updatedUsers = [...managedUsers];
+      updatedUsers[targetUserIndex] = {
+        ...updatedUsers[targetUserIndex],
+        password: cleanNew,
+      };
+
+      saveManagedUsers(updatedUsers);
+      return { success: true };
+    }
+
+    // Fallback for user
+    const fallbackCurrent = localStorage.getItem('nexus_user_pwd_' + user.id) || 'password123';
+    if (cleanOld !== fallbackCurrent) {
+      return {
+        success: false,
+        error: 'Current password does not match. Please verify your old password.',
+      };
+    }
+    localStorage.setItem('nexus_user_pwd_' + user.id, cleanNew);
+    return { success: true };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -374,6 +468,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         updateLanguage,
         updateAvatar,
+        changePassword,
       }}
     >
       {children}
