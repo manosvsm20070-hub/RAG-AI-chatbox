@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Star, MessageCircle, Send, CheckCircle2 } from 'lucide-react';
 import { feedbackMock } from '../api/mockData';
 import { EmployeeFeedback } from '../types';
+import { DEFAULT_AVATAR, getEffectiveAvatar } from '../constants/avatar';
+import { useAuth } from '../context/AuthContext';
 
 export const EmployeesView: React.FC = () => {
+  const { user } = useAuth();
   const [feedbackList, setFeedbackList] = useState<EmployeeFeedback[]>(feedbackMock);
   const [comment, setComment] = useState('');
   const [rating, setRating] = useState(5);
@@ -16,9 +19,9 @@ export const EmployeesView: React.FC = () => {
 
     const newFb: EmployeeFeedback = {
       id: `fb-${Date.now()}`,
-      employeeName: 'Alex Rivera',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      department: 'Product & AI Platform',
+      employeeName: user?.name || 'Team Member',
+      avatar: getEffectiveAvatar(user?.avatar),
+      department: user?.department || 'General Engineering',
       category,
       comment,
       rating,
@@ -135,8 +138,9 @@ export const EmployeesView: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <img
-                    src={item.avatar}
+                    src={getEffectiveAvatar(item.avatar)}
                     alt={item.employeeName}
+                    onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR; }}
                     className="w-8 h-8 rounded-full object-cover ring-1 ring-primary/20"
                   />
                   <div>

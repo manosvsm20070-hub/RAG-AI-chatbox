@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, Bell, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { DEFAULT_AVATAR, getEffectiveAvatar } from '../../constants/avatar';
 
 export const TopHeader: React.FC = () => {
   const location = useLocation();
@@ -98,8 +99,9 @@ export const TopHeader: React.FC = () => {
             className="flex items-center gap-2 pl-1 cursor-pointer"
           >
             <img
-              src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
+              src={getEffectiveAvatar(user?.avatar)}
               alt={user?.name || "User profile"}
+              onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR; }}
               className="w-9 h-9 rounded-full object-cover ring-2 ring-primary/20 hover:ring-primary transition-all"
             />
           </div>

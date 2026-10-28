@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, ManagedUser, UserRole } from '../types';
 import { currentUserMock, hrUserMock, HR_CREDENTIALS, initialManagedUsersMock } from '../api/mockData';
 import { api } from '../api/client';
+import { DEFAULT_AVATAR, getEffectiveAvatar, isDefaultOrLegacyAvatar } from '../constants/avatar';
 
 export interface NewUserData {
   id?: string;
@@ -42,7 +43,10 @@ const getPersistedAvatar = (identifier?: string): string | null => {
     const raw = localStorage.getItem('nexus_user_avatars');
     if (raw) {
       const map = JSON.parse(raw);
-      return map[identifier.toLowerCase()] || null;
+      const val = map[identifier.toLowerCase()];
+      if (val && !isDefaultOrLegacyAvatar(val)) {
+        return val;
+      }
     }
   } catch (e) {}
   return null;
@@ -70,10 +74,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const parsed = JSON.parse(savedUser);
         const customAvatar = getPersistedAvatar(parsed.email) || getPersistedAvatar(parsed.id);
-        if (customAvatar) {
-          return { ...parsed, avatar: customAvatar };
-        }
-        return parsed;
+        const effectiveAvatar = customAvatar || getEffectiveAvatar(parsed.avatar);
+        const cleanUser = { ...parsed, avatar: effectiveAvatar };
+        try {
+          localStorage.setItem('nexus_user', JSON.stringify(cleanUser));
+        } catch (e) {}
+        return cleanUser;
       } catch (e) {
         return null;
       }
@@ -87,7 +93,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          const cleaned = parsed.map((u: ManagedUser) => ({
+            ...u,
+            avatar: getEffectiveAvatar(u.avatar),
+          }));
+          return cleaned;
         }
       } catch (e) {
         // fallback
@@ -105,11 +115,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const parsed = JSON.parse(savedUser);
         const customAvatar = getPersistedAvatar(parsed.email) || getPersistedAvatar(parsed.id);
-        if (customAvatar) {
-          setUser({ ...parsed, avatar: customAvatar });
-        } else {
-          setUser(parsed);
-        }
+        const effectiveAvatar = customAvatar || getEffectiveAvatar(parsed.avatar);
+        const cleanUser = { ...parsed, avatar: effectiveAvatar };
+        setUser(cleanUser);
+        try {
+          localStorage.setItem('nexus_user', JSON.stringify(cleanUser));
+        } catch (e) {}
       } catch (e) {
         setUser(null);
       }
@@ -155,23 +166,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'A user with this User ID or Email already exists.' };
     }
 
-    const defaultAvatars = [
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80'
-    ];
-
-    const randomAvatar = defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)];
-
     const newUser: ManagedUser = {
       id: cleanId,
       name: userData.name.trim(),
       email: cleanEmail,
       password: userData.password.trim(),
       role: userData.role || 'member',
-      avatar: randomAvatar,
+      avatar: DEFAULT_AVATAR,
       department: userData.department.trim() || 'General Engineering',
       title: userData.title.trim() || 'Team Member',
       preferredLanguage: 'auto',
@@ -197,9 +198,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isHR) {
       return { success: false, error: 'Access Denied: Only HR can reset user passwords.' };
     }
+    const cleanPwd = newPassword.trim();
+    if (!cleanPwd || cleanPwd.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters long.' };
+    }
     const updated = managedUsers.map((u) => {
       if (u.id === userId) {
-        return { ...u, password: newPassword.trim() };
+        return {
+          ...u,
+          password: cleanPwd,
+          passwordUpdated: true,
+          passwordUpdatedAt: new Date().toISOString()
+        };
       }
       return u;
     });
@@ -247,12 +257,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const customHRAvatar =
           getPersistedAvatar(HR_CREDENTIALS.email) ||
           getPersistedAvatar(HR_CREDENTIALS.id) ||
-          getPersistedAvatar('usr-lohan-hr') ||
-          hrUserMock.avatar;
+          getPersistedAvatar('usr-lohan-hr');
 
         const authenticatedHR: User = {
           ...hrUserMock,
-          avatar: customHRAvatar,
+          avatar: customHRAvatar ? getEffectiveAvatar(customHRAvatar) : DEFAULT_AVATAR,
         };
 
         setUser(authenticatedHR);
@@ -288,7 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: matchedUser.name,
           email: matchedUser.email,
           role: matchedUser.role,
-          avatar: customUserAvatar,
+          avatar: getEffectiveAvatar(customUserAvatar),
           department: matchedUser.department,
           title: matchedUser.title,
           preferredLanguage: matchedUser.preferredLanguage,
@@ -430,6 +439,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updatedUsers[targetUserIndex] = {
         ...updatedUsers[targetUserIndex],
         password: cleanNew,
+        passwordUpdated: true,
+        passwordUpdatedAt: new Date().toISOString()
       };
 
       saveManagedUsers(updatedUsers);

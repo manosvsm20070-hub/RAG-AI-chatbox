@@ -1,11 +1,12 @@
 import { User, ManagedUser, MetricPulse, ActivityItem, Task, DocumentItem, ChatMessage, Team, Project, EmployeeFeedback } from '../types';
+import { DEFAULT_AVATAR } from '../constants/avatar';
 
 export const currentUserMock: User = {
   id: 'usr-alex-101',
   name: 'Alex Rivera',
   email: 'alex.rivera@nexuscorp.ai',
   role: 'lead',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  avatar: DEFAULT_AVATAR,
   department: 'Product & AI Platform',
   title: 'Lead AI Architect',
   preferredLanguage: 'auto'
@@ -16,7 +17,7 @@ export const hrUserMock: User = {
   name: 'Lohan K J',
   email: 'lohankanagaraj@gmail.com',
   role: 'hr',
-  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  avatar: DEFAULT_AVATAR,
   department: 'Human Resources & Talent Management',
   title: 'Head of Human Resources (HR Lead)',
   preferredLanguage: 'auto'
@@ -36,7 +37,7 @@ export const initialManagedUsersMock: ManagedUser[] = [
     email: 'alex.rivera@nexuscorp.ai',
     password: 'password123',
     role: 'lead',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    avatar: DEFAULT_AVATAR,
     department: 'Product & AI Platform',
     title: 'Lead AI Architect',
     preferredLanguage: 'auto',
@@ -49,7 +50,7 @@ export const initialManagedUsersMock: ManagedUser[] = [
     email: 'priya.s@nexuscorp.ai',
     password: 'password123',
     role: 'member',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    avatar: DEFAULT_AVATAR,
     department: 'Engineering',
     title: 'Full Stack Engineer',
     preferredLanguage: 'auto',
@@ -272,7 +273,7 @@ export const tasksMock: Task[] = [
     status: 'in_progress',
     assignee: {
       name: 'Karthik R.',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+      avatar: DEFAULT_AVATAR
     }
   }
 ];

@@ -18,6 +18,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { DEFAULT_AVATAR, getEffectiveAvatar } from '../../constants/avatar';
 
 export const DesktopSidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -131,8 +132,9 @@ export const DesktopSidebar: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <img
-              src={user?.avatar}
+              src={getEffectiveAvatar(user?.avatar)}
               alt={user?.name}
+              onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR; }}
               className="w-9 h-9 rounded-full object-cover ring-2 ring-primary/20 shrink-0"
             />
             <div className="truncate">

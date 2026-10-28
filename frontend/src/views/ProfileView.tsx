@@ -20,13 +20,12 @@ import {
   EyeOff
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { DEFAULT_AVATAR, getEffectiveAvatar } from '../constants/avatar';
 
 export const ProfileView: React.FC = () => {
   const { user, updateLanguage, updateAvatar, changePassword, isHR } = useAuth();
 
-  const defaultAvatar =
-    user?.avatar ||
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80';
+  const defaultAvatar = getEffectiveAvatar(user?.avatar);
 
   // Avatar state
   const [selectedAvatar, setSelectedAvatar] = useState<string>(defaultAvatar);
@@ -35,7 +34,7 @@ export const ProfileView: React.FC = () => {
   // Sync with user avatar changes
   useEffect(() => {
     if (user?.avatar) {
-      setSelectedAvatar(user.avatar);
+      setSelectedAvatar(getEffectiveAvatar(user.avatar));
     }
   }, [user?.avatar]);
 
@@ -236,6 +235,7 @@ export const ProfileView: React.FC = () => {
                   <img
                     src={selectedAvatar}
                     alt={user?.name || 'User Avatar'}
+                    onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR; }}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>

@@ -20,6 +20,7 @@ import {
 import { tasksMock } from '../api/mockData';
 import { Task } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { DEFAULT_AVATAR } from '../constants/avatar';
 
 export const TasksView: React.FC = () => {
   const navigate = useNavigate();
@@ -54,9 +55,9 @@ export const TasksView: React.FC = () => {
     const assigneeMap: Record<string, string> = {
       'Alex Rivera': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       'Priya S.': 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-      'Karthik R.': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      'Karthik R.': DEFAULT_AVATAR,
       'Entire All-Hands': 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150&auto=format&fit=crop&q=80',
-      'Lohan K J': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+      'Lohan K J': DEFAULT_AVATAR
     };
 
     const newTask: Task = {
@@ -341,8 +342,9 @@ export const TasksView: React.FC = () => {
                 <div className="flex items-center justify-between pt-2 border-t border-surface-container">
                   <div className="flex items-center gap-2">
                     <img
-                      src={task.assignee.avatar}
+                      src={task.assignee.avatar || DEFAULT_AVATAR}
                       alt={task.assignee.name}
+                      onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR; }}
                       className="w-6 h-6 rounded-full object-cover ring-1 ring-primary/20"
                     />
                     <span className="text-xs font-semibold text-on-surface">

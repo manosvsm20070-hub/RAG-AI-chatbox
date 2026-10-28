@@ -17,6 +17,8 @@ export interface ManagedUser extends User {
   password: string;
   createdAt: string;
   createdBy?: string;
+  passwordUpdated?: boolean;
+  passwordUpdatedAt?: string;
 }
 
 export interface MetricPulse {

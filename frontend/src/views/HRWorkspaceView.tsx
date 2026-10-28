@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth, NewUserData } from '../context/AuthContext';
 import { UserRole } from '../types';
+import { DEFAULT_AVATAR, getEffectiveAvatar } from '../constants/avatar';
 
 export const HRWorkspaceView: React.FC = () => {
   const navigate = useNavigate();
@@ -160,13 +161,28 @@ export const HRWorkspaceView: React.FC = () => {
 
   const handleSaveResetPassword = (id: string) => {
     if (!newPasswordVal.trim()) return;
-    resetUserPassword(id, newPasswordVal.trim());
+    if (newPasswordVal.trim().length < 6) {
+      setNotification({
+        type: 'error',
+        message: 'Password must be at least 6 characters long.'
+      });
+      return;
+    }
+    const res = resetUserPassword(id, newPasswordVal.trim());
     setEditingPasswordUserId(null);
     setNewPasswordVal('');
-    setNotification({
-      type: 'success',
-      message: `Password updated successfully for User ID ${id}.`
-    });
+    if (res.success) {
+      setNotification({
+        type: 'success',
+        message: `Password updated securely for User ID ${id}.`,
+        subText: 'The user will now use this updated password to sign in.'
+      });
+    } else {
+      setNotification({
+        type: 'error',
+        message: res.error || 'Failed to update password.'
+      });
+    }
   };
 
   const togglePasswordVisibility = (id: string) => {
@@ -322,8 +338,9 @@ export const HRWorkspaceView: React.FC = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <img
-                          src={u.avatar}
+                          src={getEffectiveAvatar(u.avatar)}
                           alt={u.name}
+                          onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR; }}
                           className="w-10 h-10 rounded-xl object-cover shrink-0 border border-surface-container"
                         />
                         <div className="min-w-0">
@@ -398,11 +415,11 @@ export const HRWorkspaceView: React.FC = () => {
                         {isEditingPass ? (
                           <div className="flex items-center gap-1">
                             <input
-                              type="text"
+                              type="password"
                               value={newPasswordVal}
                               onChange={(e) => setNewPasswordVal(e.target.value)}
-                              placeholder="New password"
-                              className="w-24 px-1.5 py-0.5 rounded bg-surface-container text-xs text-on-surface border border-outline focus:outline-none"
+                              placeholder="New password (min. 6)"
+                              className="w-32 px-1.5 py-0.5 rounded bg-surface-container text-xs text-on-surface border border-outline focus:outline-none"
                             />
                             <button
                               onClick={() => handleSaveResetPassword(u.id)}
@@ -415,6 +432,26 @@ export const HRWorkspaceView: React.FC = () => {
                               className="p-1 text-outline hover:text-on-surface"
                             >
                               <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : u.passwordUpdated ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-on-surface font-semibold tracking-wider">
+                              ••••••••••••
+                            </span>
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                              <Lock className="w-2.5 h-2.5" />
+                              User Changed
+                            </span>
+                            <button
+                              onClick={() => {
+                                setEditingPasswordUserId(u.id);
+                                setNewPasswordVal('');
+                              }}
+                              title="Reset Password"
+                              className="p-0.5 text-outline hover:text-primary ml-1"
+                            >
+                              <Key className="w-3 h-3" />
                             </button>
                           </div>
                         ) : (
@@ -436,7 +473,7 @@ export const HRWorkspaceView: React.FC = () => {
                             <button
                               onClick={() => {
                                 setEditingPasswordUserId(u.id);
-                                setNewPasswordVal(u.password || '');
+                                setNewPasswordVal('');
                               }}
                               title="Reset Password"
                               className="p-0.5 text-outline hover:text-primary ml-1"
