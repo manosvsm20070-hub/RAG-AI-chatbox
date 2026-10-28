@@ -33,12 +33,13 @@ export const App: React.FC = () => {
       <AuthProvider>
         <WorkspaceProvider>
           <Routes>
-            {/* Public Pages */}
-            <Route path="/" element={<LandingView />} />
+            {/* Initial & Public Pages: First show login page only */}
+            <Route path="/" element={<SignInView />} />
             <Route path="/auth/signin" element={<SignInView />} />
             <Route path="/auth/signup" element={<SignUpView />} />
             <Route path="/auth/forgot-password" element={<ForgotPasswordView />} />
             <Route path="/auth/reset-password" element={<ResetPasswordView />} />
+            <Route path="/landing" element={<LandingView />} />
 
             {/* Authenticated Workspace Shell */}
             <Route element={<AppShell />}>
