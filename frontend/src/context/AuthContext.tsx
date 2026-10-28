@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!isPasswordValid) {
           return {
             success: false,
-            error: 'Invalid password. For HR account (lohankanagaraj@gmail.com), password is: Lohan K J',
+            error: 'Invalid password. Please check your credentials.',
           };
         }
         setUser(hrUserMock);

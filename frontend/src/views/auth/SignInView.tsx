@@ -6,11 +6,10 @@ import { useAuth } from '../../context/AuthContext';
 export const SignInView: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading, isAuthenticated, user } = useAuth();
-  const [email, setEmail] = useState('lohankanagaraj@gmail.com');
-  const [password, setPassword] = useState('Lohan K J');
+  const { login, isLoading } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<'admin' | 'lead' | 'member' | 'hr'>('hr');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const from = (location.state as any)?.from?.pathname || '/dashboard';
@@ -18,7 +17,7 @@ export const SignInView: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-    const result = await login(email, password, role);
+    const result = await login(email, password);
     if (result && !result.success) {
       setErrorMessage(result.error || 'Failed to sign in');
       return;
@@ -40,46 +39,6 @@ export const SignInView: React.FC = () => {
           </h1>
           <p className="text-xs text-on-surface-variant">
             Enter your company credentials to access your workspace
-          </p>
-        </div>
-
-        {/* Demo Roles Quick Selector */}
-        <div className="bg-surface-container-low p-3 rounded-2xl border border-surface-container space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-outline">
-              Quick Select Persona
-            </span>
-            <span className="text-[10px] text-primary font-semibold">
-              HR Full Rights Available
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {[
-              { id: 'hr', label: 'HR: Lohan K J', email: 'lohankanagaraj@gmail.com', pass: 'Lohan K J' },
-              { id: 'lead', label: 'Alex (Lead)', email: 'alex.rivera@nexuscorp.ai', pass: 'lead123' },
-              { id: 'member', label: 'Priya (Eng)', email: 'priya.s@nexuscorp.ai', pass: 'member123' },
-            ].map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => {
-                  setRole(p.id as any);
-                  setEmail(p.email);
-                  setPassword(p.pass);
-                  setErrorMessage(null);
-                }}
-                className={`py-2 px-2 rounded-xl text-[11px] font-semibold truncate transition-all ${
-                  role === p.id
-                    ? 'bg-primary text-white shadow-xs scale-102'
-                    : 'bg-surface-container hover:bg-surface-container-high text-on-surface-variant'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <p className="text-[10px] text-outline text-center">
-            {role === 'hr' ? '⭐ HR Role: Exclusive access to HR Workspace, Document & Task Creation, Team Allocation' : '👁️ View-Only Role: Read-only access to tasks, teams & documents'}
           </p>
         </div>
 
@@ -134,6 +93,7 @@ export const SignInView: React.FC = () => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
                 className="w-full bg-surface-container-low pl-10 pr-10 py-3 rounded-2xl text-xs text-on-surface border border-surface-container focus:outline-none focus:border-primary"
               />
               <button
