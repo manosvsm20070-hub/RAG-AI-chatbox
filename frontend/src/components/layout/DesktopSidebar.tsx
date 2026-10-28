@@ -143,7 +143,7 @@ export const DesktopSidebar: React.FC = () => {
           <button
             onClick={() => {
               logout();
-              navigate('/auth/signin');
+              navigate('/auth/signin', { replace: true, state: { loggedOutAt: Date.now() } });
             }}
             title="Sign Out"
             className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-colors"

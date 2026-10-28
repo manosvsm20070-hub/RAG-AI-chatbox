@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Sparkles, Eye, EyeOff, Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -11,8 +11,38 @@ export const SignInView: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [formKey, setFormKey] = useState(() => Date.now());
 
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
+  const identifierRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  // Forcefully clear credentials on mount or logout navigation
+  useEffect(() => {
+    setIdentifier('');
+    setPassword('');
+    setErrorMessage(null);
+    setFormKey(Date.now());
+
+    const wipeInputs = () => {
+      if (identifierRef.current) {
+        identifierRef.current.value = '';
+      }
+      if (passwordRef.current) {
+        passwordRef.current.value = '';
+      }
+    };
+
+    wipeInputs();
+    const t1 = setTimeout(wipeInputs, 40);
+    const t2 = setTimeout(wipeInputs, 150);
+    const t3 = setTimeout(wipeInputs, 350);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [location.pathname, location.key, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +54,8 @@ export const SignInView: React.FC = () => {
     }
     navigate(from, { replace: true });
   };
+
+  const from = (location.state as any)?.from?.pathname || '/dashboard';
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center items-center px-4 py-12">
@@ -56,7 +88,32 @@ export const SignInView: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          key={formKey}
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          autoComplete="off"
+        >
+          {/* Hidden inputs to trap aggressive browser autofill */}
+          <input
+            type="text"
+            name="prevent_autofill_user"
+            id="prevent_autofill_user"
+            style={{ display: 'none' }}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+          />
+          <input
+            type="password"
+            name="prevent_autofill_pwd"
+            id="prevent_autofill_pwd"
+            style={{ display: 'none' }}
+            tabIndex={-1}
+            autoComplete="new-password"
+            aria-hidden="true"
+          />
+
           <div>
             <label className="block text-xs font-semibold text-on-surface-variant mb-1">
               User ID or Work Email
@@ -64,7 +121,11 @@ export const SignInView: React.FC = () => {
             <div className="relative">
               <User className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
+                ref={identifierRef}
                 type="text"
+                name="nexus_user_id_field"
+                id="nexus_user_id_field"
+                autoComplete="off"
                 required
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
@@ -89,7 +150,11 @@ export const SignInView: React.FC = () => {
             <div className="relative">
               <Lock className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
+                ref={passwordRef}
                 type={showPassword ? 'text' : 'password'}
+                name="nexus_user_pass_field"
+                id="nexus_user_pass_field"
+                autoComplete="new-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

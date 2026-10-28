@@ -188,7 +188,7 @@ export const WorkspaceDrawer: React.FC = () => {
               onClick={() => {
                 logout();
                 setIsDrawerOpen(false);
-                navigate('/auth/signin');
+                navigate('/auth/signin', { replace: true, state: { loggedOutAt: Date.now() } });
               }}
               className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-error hover:bg-error-container/30 rounded-xl transition-colors"
             >

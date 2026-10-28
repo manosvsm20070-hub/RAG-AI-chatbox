@@ -255,6 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     localStorage.removeItem('nexus_user');
+    sessionStorage.clear();
     api.setToken(null);
   };
 
