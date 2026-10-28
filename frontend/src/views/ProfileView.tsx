@@ -1,131 +1,510 @@
-import React, { useState } from 'react';
-import { User, Mail, Building2, Globe2, Shield, Save, CheckCircle2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import {
+  User,
+  Mail,
+  Building2,
+  Globe2,
+  Shield,
+  Save,
+  CheckCircle2,
+  Camera,
+  Upload,
+  Lock,
+  Check,
+  Sparkles,
+  RefreshCw,
+  BadgeCheck,
+  AlertCircle
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+// Curated high-resolution professional corporate executive headshots
+const PROFESSIONAL_AVATARS = [
+  {
+    id: 'corp-1',
+    label: 'Corporate Executive 1',
+    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'corp-2',
+    label: 'Corporate Executive 2',
+    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'corp-3',
+    label: 'Senior Specialist 1',
+    url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'corp-4',
+    label: 'Senior Specialist 2',
+    url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'corp-5',
+    label: 'Team Lead 1',
+    url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'corp-6',
+    label: 'Team Lead 2',
+    url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'corp-7',
+    label: 'AI Engineer 1',
+    url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'corp-8',
+    label: 'AI Engineer 2',
+    url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80',
+  },
+];
+
 export const ProfileView: React.FC = () => {
-  const { user, updateLanguage, isHR } = useAuth();
-  const [name, setName] = useState(user?.name || 'Lohan K J');
+  const { user, updateLanguage, updateAvatar, isHR } = useAuth();
+
+  // Avatar state
+  const [selectedAvatar, setSelectedAvatar] = useState<string>(
+    user?.avatar || PROFESSIONAL_AVATARS[0].url
+  );
+  const [customUrlInput, setCustomUrlInput] = useState('');
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  // Language state
   const [preferredLang, setPreferredLang] = useState(user?.preferredLanguage || 'auto');
-  const [saved, setSaved] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // File upload ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle local file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Please select a valid image file (JPG, PNG, WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('Image size exceeds 5MB. Please choose a smaller image.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setSelectedAvatar(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleApplyCustomUrl = () => {
+    if (!customUrlInput.trim()) return;
+    try {
+      new URL(customUrlInput.trim());
+      setSelectedAvatar(customUrlInput.trim());
+      setCustomUrlInput('');
+      setPhotoError(null);
+    } catch {
+      setPhotoError('Please enter a valid HTTP/HTTPS image URL.');
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    updateAvatar(selectedAvatar);
     updateLanguage(preferredLang as any);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
   };
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-200">
-      <div>
-        <h1 className="font-heading font-bold text-2xl text-on-surface">
-          User Profile & Preferences
-        </h1>
-        <p className="text-xs text-on-surface-variant">
-          Manage your personal workspace settings and multilingual AI preferences
-        </p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h1 className="font-heading font-bold text-2xl text-on-surface">
+            User Profile & Corporate Identity
+          </h1>
+          <p className="text-xs text-on-surface-variant">
+            Customize your professional photo avatar and AI language preferences
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 bg-surface-container px-3 py-1.5 rounded-full text-xs text-on-surface-variant self-start sm:self-auto border border-surface-container-high">
+          <Lock className="w-3.5 h-3.5 text-outline" />
+          <span>Profile Identity Managed by HR</span>
+        </div>
       </div>
 
-      <div className="bg-surface-container-lowest border border-surface-container-high rounded-3xl p-6 shadow-subtle space-y-6">
-        {/* Profile Card Header */}
-        <div className="flex items-center gap-4 pb-6 border-b border-surface-container">
-          <img
-            src={user?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"}
-            alt={user?.name}
-            className="w-16 h-16 rounded-full object-cover ring-4 ring-primary/20"
-          />
-          <div>
-            <h2 className="font-heading font-bold text-lg text-on-surface">
-              {user?.name}
-            </h2>
-            <p className="text-xs text-on-surface-variant">
-              {user?.title} • {user?.department}
-            </p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-fixed text-primary">
-                Role: {user?.role.toUpperCase()}
+      {savedSuccess && (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-xs p-3.5 rounded-2xl flex items-center justify-between gap-2 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-medium">
+              Professional profile photo and language preferences updated successfully!
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-700 uppercase bg-emerald-100 px-2 py-0.5 rounded-full">
+            Active
+          </span>
+        </div>
+      )}
+
+      {/* Main Profile Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Professional Photo Editor (Interactive) */}
+        <div className="lg:col-span-5 space-y-5">
+          <div className="bg-surface-container-lowest border border-surface-container-high rounded-3xl p-6 shadow-subtle space-y-5">
+            <div className="flex items-center justify-between border-b border-surface-container pb-3">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-primary" />
+                <h2 className="font-heading font-bold text-sm text-on-surface">
+                  Professional Photo Avatar
+                </h2>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary-fixed/40 px-2.5 py-0.5 rounded-full">
+                Editable
               </span>
-              {isHR && (
-                <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  Full HR Privileges
-                </span>
+            </div>
+
+            {/* Avatar Preview */}
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div className="relative group">
+                <div className="w-28 h-28 rounded-full overflow-hidden ring-4 ring-primary/25 shadow-md bg-surface-container flex items-center justify-center">
+                  <img
+                    src={selectedAvatar}
+                    alt={user?.name || 'User Avatar'}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Upload New Photo"
+                  className="absolute bottom-1 right-1 p-2 bg-primary text-white rounded-full shadow-md hover:bg-primary-container transition-all hover:scale-110"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div>
+                <p className="font-heading font-bold text-sm text-on-surface">
+                  {user?.name || 'Employee Name'}
+                </p>
+                <p className="text-[11px] text-on-surface-variant font-mono">
+                  ID: {user?.id || 'USR-000'}
+                </p>
+                <div className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full font-bold mt-1">
+                  <BadgeCheck className="w-3 h-3" />
+                  <span>Corporate Active</span>
+                </div>
+              </div>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold rounded-xl transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Photo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAvatar(PROFESSIONAL_AVATARS[0].url)}
+                  className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface-variant text-xs font-semibold rounded-xl transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+
+              {photoError && (
+                <div className="text-[11px] text-error flex items-center gap-1 mt-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{photoError}</span>
+                </div>
               )}
+            </div>
+
+            {/* Curated Professional Gallery */}
+            <div className="space-y-2.5 pt-2 border-t border-surface-container">
+              <label className="block text-xs font-semibold text-on-surface-variant">
+                Or Choose from Corporate Executive Avatars:
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {PROFESSIONAL_AVATARS.map((avatar) => {
+                  const isSelected = selectedAvatar === avatar.url;
+                  return (
+                    <button
+                      key={avatar.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAvatar(avatar.url);
+                        setPhotoError(null);
+                      }}
+                      className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all ${
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary/40 scale-105'
+                          : 'border-transparent hover:border-surface-container-high hover:scale-102 opacity-80 hover:opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={avatar.url}
+                        alt={avatar.label}
+                        className="w-full h-full object-cover"
+                      />
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-primary/25 flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white drop-shadow" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Custom Image URL */}
+            <div className="space-y-1.5 pt-2 border-t border-surface-container">
+              <label className="block text-[11px] font-semibold text-on-surface-variant">
+                Or Paste Image URL:
+              </label>
+              <div className="flex gap-1.5">
+                <input
+                  type="url"
+                  value={customUrlInput}
+                  onChange={(e) => setCustomUrlInput(e.target.value)}
+                  placeholder="https://images.example.com/photo.jpg"
+                  className="flex-1 bg-surface-container-low px-3 py-1.5 rounded-xl text-xs text-on-surface border border-surface-container focus:outline-none focus:border-primary font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCustomUrl}
+                  className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high text-xs font-semibold rounded-xl text-on-surface"
+                >
+                  Apply
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {saved && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-3 rounded-xl flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Profile and language preferences updated successfully!</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-on-surface-variant mb-1">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-surface-container-low pl-10 pr-4 py-2.5 rounded-xl text-xs text-on-surface border border-surface-container focus:outline-none focus:border-primary"
-                />
+        {/* Right Column: Corporate Identity Details (Read-Only HR Governed) */}
+        <div className="lg:col-span-7 space-y-5">
+          <div className="bg-surface-container-lowest border border-surface-container-high rounded-3xl p-6 shadow-subtle space-y-6">
+            <div className="flex items-center justify-between border-b border-surface-container pb-3">
+              <div>
+                <h2 className="font-heading font-bold text-sm text-on-surface">
+                  Company Identity & Workspace Permissions
+                </h2>
+                <p className="text-[11px] text-on-surface-variant">
+                  Centrally provisioned and verified by Human Resources
+                </p>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] text-outline">
+                <Lock className="w-3.5 h-3.5" />
+                <span>Read-Only</span>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-on-surface-variant mb-1">
-                Work Email
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  disabled
-                  value={user?.email || 'lohankanagaraj@gmail.com'}
-                  className="w-full bg-surface-container-low/60 pl-10 pr-4 py-2.5 rounded-xl text-xs text-outline border border-surface-container cursor-not-allowed"
-                />
+            {/* HR Policy Notice Banner */}
+            <div className="bg-primary-fixed/20 border border-primary/20 rounded-2xl p-3.5 text-xs text-on-surface flex items-start gap-2.5">
+              <Shield className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <span className="font-semibold text-primary">Organizational Identity Policy: </span>
+                <span>
+                  Employee names, User IDs, roles, and squad assignments are locked by HR to ensure organizational compliance. To request updates to your official credentials, contact Human Resources.
+                </span>
               </div>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-on-surface-variant mb-1">
-              AI Query Language Preference
-            </label>
-            <div className="relative">
-              <Globe2 className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <select
-                value={preferredLang}
-                onChange={(e) => setPreferredLang(e.target.value as any)}
-                className="w-full bg-surface-container-low pl-10 pr-4 py-2.5 rounded-xl text-xs text-on-surface border border-surface-container focus:outline-none focus:border-primary"
-              >
-                <option value="auto">Auto-Detect (Seamless English, Tamil & Tanglish)</option>
-                <option value="ta">Tamil Script (தமிழ் முன்னுரிமை)</option>
-                <option value="tanglish">Tanglish Preferred (Romanized Tamil)</option>
-                <option value="en">English Only</option>
-              </select>
-            </div>
-            <p className="text-[11px] text-outline mt-1">
-              When auto-detect is enabled, Nexus AI responds in whichever dialect you type in.
-            </p>
-          </div>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Full Name (Read-Only) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-on-surface-variant">
+                      Full Name
+                    </label>
+                    <span className="text-[10px] text-outline flex items-center gap-0.5">
+                      <Lock className="w-2.5 h-2.5" /> HR Locked
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      disabled
+                      value={user?.name || ''}
+                      className="w-full bg-surface-container-low/70 pl-10 pr-4 py-2.5 rounded-xl text-xs text-on-surface font-semibold border border-surface-container cursor-not-allowed"
+                    />
+                  </div>
+                </div>
 
-          <div className="pt-2">
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 bg-primary hover:bg-primary-container text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>Save Preferences</span>
-            </button>
+                {/* User ID (Read-Only) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-on-surface-variant">
+                      Corporate User ID
+                    </label>
+                    <span className="text-[10px] text-outline flex items-center gap-0.5">
+                      <Lock className="w-2.5 h-2.5" /> Verified
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    disabled
+                    value={user?.id || ''}
+                    className="w-full bg-surface-container-low/70 px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold text-primary border border-surface-container cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Work Email (Read-Only) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-on-surface-variant">
+                      Work Email
+                    </label>
+                    <span className="text-[10px] text-outline flex items-center gap-0.5">
+                      <Lock className="w-2.5 h-2.5" /> HR Locked
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      disabled
+                      value={user?.email || ''}
+                      className="w-full bg-surface-container-low/70 pl-10 pr-4 py-2.5 rounded-xl text-xs text-on-surface-variant border border-surface-container cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                {/* Role / Access Level (Read-Only) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-on-surface-variant">
+                      Workspace Role
+                    </label>
+                    <span className="text-[10px] text-outline flex items-center gap-0.5">
+                      <Lock className="w-2.5 h-2.5" /> RBAC
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Shield className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      disabled
+                      value={
+                        isHR
+                          ? 'Human Resources (HR Full Privileges)'
+                          : user?.role === 'lead'
+                          ? 'Team Lead (Read/View Access)'
+                          : 'Squad Member (Read/View Access)'
+                      }
+                      className="w-full bg-surface-container-low/70 pl-10 pr-4 py-2.5 rounded-xl text-xs font-semibold text-on-surface border border-surface-container cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Department */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-on-surface-variant">
+                      Department / Squad
+                    </label>
+                    <span className="text-[10px] text-outline flex items-center gap-0.5">
+                      <Lock className="w-2.5 h-2.5" /> Assigned
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      disabled
+                      value={user?.department || 'Engineering'}
+                      className="w-full bg-surface-container-low/70 pl-10 pr-4 py-2.5 rounded-xl text-xs text-on-surface-variant border border-surface-container cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                {/* Job Title */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-on-surface-variant">
+                      Designation / Title
+                    </label>
+                    <span className="text-[10px] text-outline flex items-center gap-0.5">
+                      <Lock className="w-2.5 h-2.5" /> Official
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    disabled
+                    value={user?.title || 'Specialist'}
+                    className="w-full bg-surface-container-low/70 px-3.5 py-2.5 rounded-xl text-xs text-on-surface-variant border border-surface-container cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* Multilingual AI Query Preference (User Configurable) */}
+              <div className="pt-2 border-t border-surface-container">
+                <label className="block text-xs font-semibold text-on-surface-variant mb-1">
+                  AI Query Language Preference
+                </label>
+                <div className="relative">
+                  <Globe2 className="w-4 h-4 text-outline absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <select
+                    value={preferredLang}
+                    onChange={(e) => setPreferredLang(e.target.value as any)}
+                    className="w-full bg-surface-container-low pl-10 pr-4 py-2.5 rounded-xl text-xs text-on-surface border border-surface-container focus:outline-none focus:border-primary"
+                  >
+                    <option value="auto">Auto-Detect (Seamless English, Tamil & Tanglish)</option>
+                    <option value="ta">Tamil Script (தமிழ் முன்னுரிமை)</option>
+                    <option value="tanglish">Tanglish Preferred (Romanized Tamil)</option>
+                    <option value="en">English Only</option>
+                  </select>
+                </div>
+                <p className="text-[11px] text-outline mt-1">
+                  Nexus AI will respond in whichever dialect you type in when Auto-Detect is enabled.
+                </p>
+              </div>
+
+              {/* Save Button */}
+              <div className="pt-3 border-t border-surface-container flex items-center justify-between">
+                <span className="text-[11px] text-on-surface-variant">
+                  Changes to photo will immediately reflect across your workspace.
+                </span>
+                <button
+                  type="submit"
+                  className="flex items-center gap-2 bg-primary hover:bg-primary-container text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-primary/25 hover:scale-[1.02]"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Profile Photo</span>
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ interface AuthContextType {
   login: (identifier: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateLanguage: (lang: User['preferredLanguage']) => void;
+  updateAvatar: (avatarUrl: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -266,6 +267,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('nexus_user', JSON.stringify(updated));
   };
 
+  const updateAvatar = (avatarUrl: string) => {
+    if (!user) return;
+    const updated = { ...user, avatar: avatarUrl };
+    setUser(updated);
+    try {
+      localStorage.setItem('nexus_user', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to save updated avatar', e);
+    }
+
+    setManagedUsers((prev) => {
+      const exists = prev.some(
+        (u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()
+      );
+      if (exists) {
+        const next = prev.map((u) =>
+          u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()
+            ? { ...u, avatar: avatarUrl }
+            : u
+        );
+        try {
+          localStorage.setItem('nexus_managed_users', JSON.stringify(next));
+        } catch (e) {}
+        return next;
+      }
+      return prev;
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -285,6 +315,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         updateLanguage,
+        updateAvatar,
       }}
     >
       {children}
