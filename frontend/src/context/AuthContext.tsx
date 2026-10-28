@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, ManagedUser, UserRole } from '../types';
-import { currentUserMock, hrUserMock, HR_CREDENTIALS, initialManagedUsersMock } from '../api/mockData';
+import { User, ManagedUser, UserRole, Team, TeamTask, NewTeamData } from '../types';
+import { currentUserMock, hrUserMock, HR_CREDENTIALS, initialManagedUsersMock, teamsMock } from '../api/mockData';
 import { api } from '../api/client';
 import { DEFAULT_AVATAR, getEffectiveAvatar, isDefaultOrLegacyAvatar } from '../constants/avatar';
 
@@ -12,6 +12,12 @@ export interface NewUserData {
   role: UserRole;
   department: string;
   title: string;
+}
+
+export interface UserLockStatus {
+  locked: boolean;
+  team?: Team;
+  task?: TeamTask;
 }
 
 interface AuthContextType {
@@ -28,6 +34,11 @@ interface AuthContextType {
   createUser: (userData: NewUserData) => { success: boolean; error?: string; user?: ManagedUser };
   deleteUser: (userId: string) => { success: boolean; error?: string };
   resetUserPassword: (userId: string, newPassword: string) => { success: boolean; error?: string };
+  teams: Team[];
+  createTeam: (teamData: NewTeamData) => { success: boolean; error?: string; team?: Team };
+  completeTeamTask: (teamId: string) => { success: boolean; error?: string };
+  deleteTeam: (teamId: string) => { success: boolean };
+  getUserLockStatus: (userId: string) => UserLockStatus;
   login: (identifier: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateLanguage: (lang: User['preferredLanguage']) => void;
@@ -136,6 +147,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const [teams, setTeams] = useState<Team[]>(() => {
+    const saved = localStorage.getItem('nexus_teams');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        // fallback
+      }
+    }
+    return teamsMock;
+  });
+
+  const saveTeams = (newTeams: Team[]) => {
+    setTeams(newTeams);
+    try {
+      localStorage.setItem('nexus_teams', JSON.stringify(newTeams));
+    } catch (e) {
+      console.error('Failed to persist teams', e);
+    }
+  };
+
   const isHR =
     !!user &&
     (user.role === 'hr' || user.email.toLowerCase() === HR_CREDENTIALS.email.toLowerCase());
@@ -214,6 +249,131 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return u;
     });
     saveManagedUsers(updated);
+    return { success: true };
+  };
+
+  const getUserLockStatus = (userId: string): UserLockStatus => {
+    if (!userId) return { locked: false };
+    const cleanId = userId.trim().toLowerCase();
+    for (const team of teams) {
+      const isMember =
+        (team.memberIds || []).some((m) => m.trim().toLowerCase() === cleanId) ||
+        (team.leadId && team.leadId.trim().toLowerCase() === cleanId);
+      if (isMember) {
+        if (team.currentTask && team.currentTask.status !== 'completed') {
+          return { locked: true, team, task: team.currentTask };
+        }
+      }
+    }
+    return { locked: false };
+  };
+
+  const createTeam = (teamData: NewTeamData): { success: boolean; error?: string; team?: Team } => {
+    if (!isHR) {
+      return { success: false, error: 'Access Denied: Only HR can create squads and allocate teams.' };
+    }
+
+    if (!teamData.name.trim()) {
+      return { success: false, error: 'Team / Squad name is required.' };
+    }
+
+    if (!teamData.memberIds || teamData.memberIds.length === 0) {
+      return { success: false, error: 'Please select at least one team member.' };
+    }
+
+    if (!teamData.leadId) {
+      return { success: false, error: 'Please select a Team Leader from the chosen members.' };
+    }
+
+    if (!teamData.memberIds.includes(teamData.leadId)) {
+      return { success: false, error: 'The Team Leader must be one of the selected team members.' };
+    }
+
+    if (!teamData.taskTitle.trim()) {
+      return { success: false, error: 'An initial team task is required when creating a squad.' };
+    }
+
+    // Business Rule: Check if any of the selected users is already in an active team with an incomplete task
+    for (const memberId of teamData.memberIds) {
+      const lockStatus = getUserLockStatus(memberId);
+      if (lockStatus.locked) {
+        const memberObj = managedUsers.find((u) => u.id === memberId);
+        const name = memberObj ? memberObj.name : memberId;
+        return {
+          success: false,
+          error: `Cannot assign ${name}: already active in squad "${lockStatus.team?.name}" with ongoing task "${lockStatus.task?.title}". Complete that task before reassigning.`
+        };
+      }
+    }
+
+    const leadUser = managedUsers.find((u) => u.id === teamData.leadId);
+    const leadName = leadUser ? leadUser.name : 'Squad Lead';
+
+    const newTeamTask: TeamTask = {
+      id: `task-${Date.now()}`,
+      title: teamData.taskTitle.trim(),
+      description: teamData.taskDescription?.trim(),
+      priority: teamData.taskPriority || 'medium',
+      dueDate: teamData.taskDueDate || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+      dueDateLabel: teamData.taskDueDate ? teamData.taskDueDate.slice(5) : 'Next Week',
+      status: 'in_progress',
+    };
+
+    const newTeam: Team = {
+      id: `tm-${Date.now()}`,
+      name: teamData.name.trim(),
+      department: teamData.department || 'Engineering',
+      leadId: teamData.leadId,
+      leadName,
+      memberIds: teamData.memberIds,
+      membersCount: teamData.memberIds.length,
+      activeProjectsCount: 1,
+      currentTask: newTeamTask,
+      createdAt: new Date().toISOString().split('T')[0],
+      createdBy: `${user?.name || 'HR'} (${user?.email || HR_CREDENTIALS.email})`,
+    };
+
+    const updatedTeams = [newTeam, ...teams];
+    saveTeams(updatedTeams);
+    return { success: true, team: newTeam };
+  };
+
+  const completeTeamTask = (teamId: string): { success: boolean; error?: string } => {
+    if (!isHR) {
+      return { success: false, error: 'Access Denied: Only HR can mark team tasks as completed.' };
+    }
+
+    let found = false;
+    const updated = teams.map((t) => {
+      if (t.id === teamId) {
+        found = true;
+        return {
+          ...t,
+          currentTask: t.currentTask
+            ? {
+                ...t.currentTask,
+                status: 'completed' as const,
+                completedAt: new Date().toISOString().split('T')[0],
+                completedBy: `${user?.name || 'HR'}`,
+              }
+            : undefined,
+        };
+      }
+      return t;
+    });
+
+    if (!found) {
+      return { success: false, error: 'Team not found.' };
+    }
+
+    saveTeams(updated);
+    return { success: true };
+  };
+
+  const deleteTeam = (teamId: string): { success: boolean } => {
+    if (!isHR) return { success: false };
+    const updated = teams.filter((t) => t.id !== teamId);
+    saveTeams(updated);
     return { success: true };
   };
 
@@ -475,6 +635,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createUser,
         deleteUser,
         resetUserPassword,
+        teams,
+        createTeam,
+        completeTeamTask,
+        deleteTeam,
+        getUserLockStatus,
         login,
         logout,
         updateLanguage,

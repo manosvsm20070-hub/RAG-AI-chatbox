@@ -101,13 +101,41 @@ export interface DocumentItem {
   ingestionProgress?: number; // 0-100
 }
 
+export interface TeamTask {
+  id: string;
+  title: string;
+  description?: string;
+  priority: 'high' | 'medium' | 'low';
+  dueDate: string;
+  dueDateLabel?: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  completedAt?: string;
+  completedBy?: string;
+}
+
 export interface Team {
   id: string;
   name: string;
   department: string;
+  leadId?: string;
   leadName: string;
+  memberIds?: string[];
   membersCount: number;
   activeProjectsCount: number;
+  currentTask?: TeamTask;
+  createdAt?: string;
+  createdBy?: string;
+}
+
+export interface NewTeamData {
+  name: string;
+  department: string;
+  leadId: string;
+  memberIds: string[];
+  taskTitle: string;
+  taskDescription?: string;
+  taskPriority: 'high' | 'medium' | 'low';
+  taskDueDate: string;
 }
 
 export interface Project {
