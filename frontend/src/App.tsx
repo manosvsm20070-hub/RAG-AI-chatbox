@@ -62,7 +62,7 @@ export const App: React.FC = () => {
             </Route>
 
             {/* Fallback */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/auth/signin" replace />} />
           </Routes>
         </WorkspaceProvider>
       </AuthProvider>

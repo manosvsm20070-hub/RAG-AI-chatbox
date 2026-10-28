@@ -1,5 +1,6 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { TopHeader } from './TopHeader';
 import { DesktopSidebar } from './DesktopSidebar';
 import { BottomNav } from './BottomNav';
@@ -9,6 +10,14 @@ import { NotificationsModal } from '../common/NotificationsModal';
 import { SourceModal } from '../assistant/SourceModal';
 
 export const AppShell: React.FC = () => {
+  const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+
+  // Without sign-in, users cannot enter the dashboard or workspace
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/auth/signin" state={{ from: location }} replace />;
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row text-on-surface">
       {/* Desktop Sidebar */}

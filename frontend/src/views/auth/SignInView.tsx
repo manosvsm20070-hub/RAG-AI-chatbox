@@ -1,16 +1,25 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Sparkles, Eye, EyeOff, Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const SignInView: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const location = useLocation();
+  const { login, isLoading, isAuthenticated, user } = useAuth();
   const [email, setEmail] = useState('lohankanagaraj@gmail.com');
   const [password, setPassword] = useState('Lohan K J');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'admin' | 'lead' | 'member' | 'hr'>('hr');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const from = (location.state as any)?.from?.pathname || '/dashboard';
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +29,7 @@ export const SignInView: React.FC = () => {
       setErrorMessage(result.error || 'Failed to sign in');
       return;
     }
-    navigate('/dashboard');
+    navigate(from, { replace: true });
   };
 
   return (
@@ -79,6 +88,13 @@ export const SignInView: React.FC = () => {
             {role === 'hr' ? '⭐ HR Role: Exclusive access to HR Workspace, Document & Task Creation, Team Allocation' : '👁️ View-Only Role: Read-only access to tasks, teams & documents'}
           </p>
         </div>
+
+        {(location.state as any)?.from && !errorMessage && (
+          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-700 rounded-xl p-3 text-xs flex items-center gap-2">
+            <Lock className="w-4 h-4 shrink-0 text-amber-600" />
+            <span>Authentication required. Please sign in to enter your workspace dashboard.</span>
+          </div>
+        )}
 
         {errorMessage && (
           <div className="bg-error-container/40 border border-error/30 text-error rounded-xl p-3 text-xs flex items-center gap-2">

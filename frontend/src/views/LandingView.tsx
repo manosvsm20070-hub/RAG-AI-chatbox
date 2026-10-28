@@ -11,9 +11,19 @@ import {
   CheckCircle2,
   Lock
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const LandingView: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
+
+  const handleLaunch = () => {
+    if (isAuthenticated && user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth/signin');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col">
@@ -38,13 +48,13 @@ export const LandingView: React.FC = () => {
               onClick={() => navigate('/auth/signin')}
               className="text-xs font-semibold text-on-surface hover:text-primary px-3 py-2 rounded-xl transition-colors"
             >
-              Sign In
+              {isAuthenticated && user ? `Signed in (${user.name.split(' ')[0]})` : 'Sign In'}
             </button>
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={handleLaunch}
               className="flex items-center gap-1.5 bg-primary hover:bg-primary-container text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm shadow-primary/20 transition-all hover:scale-105"
             >
-              <span>Launch Workspace</span>
+              <span>{isAuthenticated && user ? 'Go to Workspace' : 'Launch Workspace'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -68,18 +78,18 @@ export const LandingView: React.FC = () => {
 
         <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={handleLaunch}
             className="flex items-center gap-2 bg-primary hover:bg-primary-container text-white px-6 py-3.5 rounded-2xl text-sm font-bold shadow-elevated hover:shadow-primary/30 transition-all hover:scale-105"
           >
-            <span>Explore Live Dashboard</span>
+            <span>{isAuthenticated && user ? 'Enter Workspace Dashboard' : 'Sign In to Workspace'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
           <button
-            onClick={() => navigate('/assistant')}
+            onClick={handleLaunch}
             className="flex items-center gap-2 bg-surface-container-lowest border border-surface-container-high hover:border-primary/40 text-on-surface px-6 py-3.5 rounded-2xl text-sm font-semibold transition-colors shadow-subtle"
           >
             <Sparkles className="w-4 h-4 text-primary" />
-            <span>Test Multilingual RAG</span>
+            <span>Launch AI Assistant</span>
           </button>
         </div>
       </section>

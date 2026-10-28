@@ -21,22 +21,28 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(hrUserMock);
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('nexus_user');
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Check local storage for persistent mock session
+    // Check local storage for persistent session
     const savedUser = localStorage.getItem('nexus_user');
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
       } catch (e) {
-        setUser(hrUserMock);
+        setUser(null);
       }
-    } else {
-      // Default to HR user session
-      setUser(hrUserMock);
-      localStorage.setItem('nexus_user', JSON.stringify(hrUserMock));
     }
   }, []);
 
@@ -51,10 +57,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Check if trying to sign in as HR Lohan K J
       if (normalizedEmail === HR_CREDENTIALS.email.toLowerCase()) {
-        if (password && password.trim() !== HR_CREDENTIALS.password) {
+        const inputClean = (password || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        const targetClean = HR_CREDENTIALS.password.toLowerCase().replace(/\s+/g, ' ');
+        const inputNoSpace = (password || '').replace(/\s+/g, '').toLowerCase();
+        const targetNoSpace = HR_CREDENTIALS.password.replace(/\s+/g, '').toLowerCase();
+
+        const isPasswordValid = 
+          !password || 
+          inputClean === targetClean || 
+          inputNoSpace === targetNoSpace ||
+          password.trim() === 'Lohan K J';
+
+        if (!isPasswordValid) {
           return {
             success: false,
-            error: 'Invalid password. For HR account (lohankanagaraj@gmail.com), use password: Lohan K J',
+            error: 'Invalid password. For HR account (lohankanagaraj@gmail.com), password is: Lohan K J',
           };
         }
         setUser(hrUserMock);
