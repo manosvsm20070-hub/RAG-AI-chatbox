@@ -3,6 +3,7 @@ import { User, ManagedUser, UserRole, Team, TeamTask, NewTeamData } from '../typ
 import { currentUserMock, hrUserMock, HR_CREDENTIALS, initialManagedUsersMock, teamsMock } from '../api/mockData';
 import { api } from '../api/client';
 import { DEFAULT_AVATAR, getEffectiveAvatar, isDefaultOrLegacyAvatar } from '../constants/avatar';
+import { supabaseService } from '../services/supabaseService';
 
 export interface NewUserData {
   id?: string;
@@ -25,6 +26,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isHR: boolean;
+  isDatabaseConnected: boolean;
   canViewDocuments: boolean;
   canManageDocuments: boolean;
   canAllocateTeam: boolean;
@@ -118,6 +120,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isDatabaseConnected, setIsDatabaseConnected] = useState<boolean>(() =>
+    supabaseService.isConfigured()
+  );
 
   useEffect(() => {
     // Check local storage for persistent session
@@ -135,6 +140,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (e) {
         setUser(null);
       }
+    }
+
+    // Sync from Supabase database if configured
+    const isConfigured = supabaseService.isConfigured();
+    setIsDatabaseConnected(isConfigured);
+
+    if (isConfigured) {
+      supabaseService.fetchUsers().then((dbUsers) => {
+        if (dbUsers && dbUsers.length > 0) {
+          setManagedUsers(dbUsers);
+          try {
+            localStorage.setItem('nexus_managed_users', JSON.stringify(dbUsers));
+          } catch (e) {}
+        }
+      });
+
+      supabaseService.fetchTeams().then((dbTeams) => {
+        if (dbTeams && dbTeams.length > 0) {
+          setTeams(dbTeams);
+          try {
+            localStorage.setItem('nexus_teams', JSON.stringify(dbTeams));
+          } catch (e) {}
+        }
+      });
     }
   }, []);
 
@@ -217,6 +246,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const updated = [newUser, ...managedUsers];
     saveManagedUsers(updated);
+
+    if (supabaseService.isConfigured()) {
+      supabaseService.insertUser(newUser).catch((err) => {
+        console.error('[Supabase] Failed to persist new user:', err);
+      });
+    }
+
     return { success: true, user: newUser };
   };
 
@@ -226,6 +262,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     const updated = managedUsers.filter((u) => u.id !== userId);
     saveManagedUsers(updated);
+
+    if (supabaseService.isConfigured()) {
+      supabaseService.deleteUser(userId).catch((err) => {
+        console.error('[Supabase] Failed to delete user from DB:', err);
+      });
+    }
+
     return { success: true };
   };
 
@@ -249,6 +292,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return u;
     });
     saveManagedUsers(updated);
+
+    if (supabaseService.isConfigured()) {
+      supabaseService.updateUserPassword(userId, cleanPwd).catch((err) => {
+        console.error('[Supabase] Failed to reset password in DB:', err);
+      });
+    }
+
     return { success: true };
   };
 
@@ -335,6 +385,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const updatedTeams = [newTeam, ...teams];
     saveTeams(updatedTeams);
+
+    if (supabaseService.isConfigured()) {
+      supabaseService.insertTeam(newTeam).catch((err) => {
+        console.error('[Supabase] Failed to sync team to DB:', err);
+      });
+    }
+
     return { success: true, team: newTeam };
   };
 
@@ -344,19 +401,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     let found = false;
+    let updatedTaskObj: any = undefined;
     const updated = teams.map((t) => {
       if (t.id === teamId) {
         found = true;
+        updatedTaskObj = t.currentTask
+          ? {
+              ...t.currentTask,
+              status: 'completed' as const,
+              completedAt: new Date().toISOString().split('T')[0],
+              completedBy: `${user?.name || 'HR'}`,
+            }
+          : undefined;
         return {
           ...t,
-          currentTask: t.currentTask
-            ? {
-                ...t.currentTask,
-                status: 'completed' as const,
-                completedAt: new Date().toISOString().split('T')[0],
-                completedBy: `${user?.name || 'HR'}`,
-              }
-            : undefined,
+          currentTask: updatedTaskObj,
         };
       }
       return t;
@@ -367,6 +426,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     saveTeams(updated);
+
+    if (supabaseService.isConfigured()) {
+      supabaseService.updateTeamTask(teamId, updatedTaskObj).catch((err) => {
+        console.error('[Supabase] Failed to update team task in DB:', err);
+      });
+    }
+
     return { success: true };
   };
 
@@ -374,6 +440,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isHR) return { success: false };
     const updated = teams.filter((t) => t.id !== teamId);
     saveTeams(updated);
+
+    if (supabaseService.isConfigured()) {
+      supabaseService.deleteTeam(teamId).catch((err) => {
+        console.error('[Supabase] Failed to delete team from DB:', err);
+      });
+    }
+
     return { success: true };
   };
 
@@ -395,8 +468,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cleanIdentifier === 'hr-001';
 
       if (isHREmail || isHRId) {
-        const effectiveHRPassword =
+        let effectiveHRPassword =
           localStorage.getItem('nexus_hr_password') || HR_CREDENTIALS.password;
+
+        if (supabaseService.isConfigured()) {
+          const dbHR = await supabaseService.findUserByIdentifier('usr-lohan-hr');
+          if (dbHR && dbHR.password) {
+            effectiveHRPassword = dbHR.password;
+          }
+        }
 
         const inputClean = cleanPassword.toLowerCase().replace(/\s+/g, ' ');
         const targetClean = effectiveHRPassword.toLowerCase().replace(/\s+/g, ' ');
@@ -431,11 +511,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // 2. Check Managed Users (created by HR) by User ID or Email
-      const matchedUser = managedUsers.find(
+      let matchedUser = managedUsers.find(
         (u) =>
           u.email.toLowerCase() === cleanIdentifier ||
           u.id.toLowerCase() === cleanIdentifier
       );
+
+      // If user not in local cache, query Supabase database directly
+      if (!matchedUser && supabaseService.isConfigured()) {
+        const dbUser = await supabaseService.findUserByIdentifier(cleanIdentifier);
+        if (dbUser) {
+          matchedUser = dbUser;
+          setManagedUsers((prev) => [dbUser, ...prev.filter((u) => u.id !== dbUser.id)]);
+        }
+      }
 
       if (matchedUser) {
         // Verify password
@@ -524,6 +613,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return prev;
     });
+
+    if (supabaseService.isConfigured() && user) {
+      supabaseService.updateUserAvatar(user.id, avatarUrl).catch((err) => {
+        console.error('[Supabase] Failed to update avatar in DB:', err);
+      });
+    }
   };
 
   const changePassword = (
@@ -576,6 +671,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (e) {
         console.error('Failed to save HR password', e);
       }
+
+      if (supabaseService.isConfigured()) {
+        supabaseService.updateUserPassword('usr-lohan-hr', cleanNew).catch((err) => {
+          console.error('[Supabase] Failed to update HR password in DB:', err);
+        });
+      }
+
       return { success: true };
     }
 
@@ -604,6 +706,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       saveManagedUsers(updatedUsers);
+
+      if (supabaseService.isConfigured()) {
+        supabaseService.updateUserPassword(user.id, cleanNew).catch((err) => {
+          console.error('[Supabase] Failed to update user password in DB:', err);
+        });
+      }
+
       return { success: true };
     }
 
@@ -626,6 +735,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         isHR,
+        isDatabaseConnected,
         canViewDocuments: isHR,
         canManageDocuments: isHR,
         canAllocateTeam: isHR,

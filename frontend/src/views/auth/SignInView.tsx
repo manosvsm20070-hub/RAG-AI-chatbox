@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Sparkles, Eye, EyeOff, Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, Eye, EyeOff, Lock, User, ArrowRight, ShieldCheck, Database } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const SignInView: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isDatabaseConnected } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -72,6 +72,21 @@ export const SignInView: React.FC = () => {
           <p className="text-xs text-on-surface-variant">
             Enter your User ID or Work Email along with your password
           </p>
+
+          <div className="flex justify-center pt-1">
+            {isDatabaseConnected ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <Database className="w-3 h-3 text-emerald-600" />
+                <span>Supabase PostgreSQL Active</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-700 border border-amber-500/20" title="To persist data permanently across all browsers, set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in frontend/.env">
+                <Database className="w-3 h-3 text-amber-600" />
+                <span>Local Storage Mode</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {(location.state as any)?.from && !errorMessage && (
